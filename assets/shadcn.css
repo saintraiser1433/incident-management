@@ -1,0 +1,466 @@
+/* shadcn-like theme for PHP/Bootstrap app (no Tailwind required) */
+/* Default (dark) variables */
+:root,
+:root[data-theme='dark'] {
+  --bg: #0b0f1a;
+  --card: #0f1525;
+  --card-hover: #131b2e;
+  --muted: #8b9bb4;
+  --text: #e6edf7;
+  --primary: #6e8bff;
+  --primary-600: #5d7cfb;
+  --primary-700: #4b69f7;
+  --ring: rgba(110, 139, 255, 0.45);
+  --border: rgba(255, 255, 255, 0.08);
+  --success: #42d392;
+  --warning: #f0b429;
+  --danger: #ff6b6b;
+
+  --info: #38bdf8; /* lighter blue for dark backgrounds */
+  --secondary: #9ca3af; /* light gray */
+}
+
+/* Light theme variables */
+:root[data-theme='light'] {
+  --bg: #f7f8fb;
+  --card: #ffffff;
+  --card-hover: #f4f6fb;
+  --muted: #6b7280;
+  --text: #0f172a;
+  --primary: #4f46e5;
+  --primary-600: #4338ca;
+  --primary-700: #3730a3;
+  --ring: rgba(79, 70, 229, 0.35);
+  --border: rgba(15, 23, 42, 0.08);
+  --success: #16a34a;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --info: #0ea5e9; /* blue */
+  --secondary: #6b7280; /* gray */
+}
+
+/* App background */
+body {
+  background: radial-gradient(1200px 600px at 0% 0%, #0d1324 0%, var(--bg) 40%),
+    radial-gradient(1000px 800px at 100% 0%, #111a33 0%, var(--bg) 40%),
+    var(--bg) !important;
+  color: var(--text);
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+/* Layout base */
+html,
+body {
+  height: 100%;
+}
+body {
+  min-height: 100vh;
+}
+
+/* Light mode polish */
+:root[data-theme='light'] body {
+  background: linear-gradient(180deg, #f9fafb 0%, #f3f4f6 100%) !important;
+}
+
+/* Cards */
+.ui-card {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.03),
+    rgba(255, 255, 255, 0.02)
+  );
+  border: 1px solid var(--border) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease,
+    background 0.25s ease;
+}
+.ui-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(0, 0, 0, 0.12) !important;
+}
+
+/* Buttons */
+.ui-btn-primary {
+  background: linear-gradient(
+    180deg,
+    var(--primary) 0%,
+    var(--primary-700) 100%
+  ) !important;
+  border: 1px solid rgba(0, 0, 0, 0.05) !important;
+  color: white !important;
+  border-radius: 10px !important;
+  padding: 10px 14px !important;
+  box-shadow: 0 10px 20px rgba(110, 139, 255, 0.25);
+}
+.ui-btn-primary:hover {
+  filter: brightness(1.06);
+  box-shadow: 0 12px 28px rgba(110, 139, 255, 0.35);
+}
+
+.ui-btn-ghost {
+  background: transparent !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 10px !important;
+}
+.ui-btn-ghost:hover {
+  background: rgba(0, 0, 0, 0.03) !important;
+  border-color: rgba(0, 0, 0, 0.12) !important;
+}
+
+/* Badges */
+.badge-success {
+  background: color-mix(in oklab, var(--success) 18%, transparent) !important;
+  color: var(--success) !important;
+  border: 1px solid color-mix(in oklab, var(--success) 30%, transparent);
+}
+.badge-warning {
+  background: color-mix(in oklab, var(--warning) 18%, transparent) !important;
+  color: var(--warning) !important;
+  border: 1px solid color-mix(in oklab, var(--warning) 30%, transparent);
+}
+.badge-danger {
+  background: color-mix(in oklab, var(--danger) 18%, transparent) !important;
+  color: var(--danger) !important;
+  border: 1px solid color-mix(in oklab, var(--danger) 30%, transparent);
+}
+.badge-dark {
+  background: rgba(139, 155, 180, 0.15) !important;
+  color: #475569 !important;
+  border: 1px solid rgba(139, 155, 180, 0.25);
+}
+
+.badge-info {
+  background: color-mix(in oklab, var(--info) 18%, transparent) !important;
+  color: var(--info) !important;
+  border: 1px solid color-mix(in oklab, var(--info) 30%, transparent);
+}
+
+.badge-secondary {
+  background: color-mix(in oklab, var(--secondary) 18%, transparent) !important;
+  color: var(--secondary) !important;
+  border: 1px solid color-mix(in oklab, var(--secondary) 30%, transparent);
+}
+
+/* Inputs */
+.form-control,
+.form-select,
+.form-control:focus,
+.form-select:focus {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text) !important;
+  border-radius: 12px !important;
+}
+.form-control:focus,
+.form-select:focus {
+  box-shadow: 0 0 0 4px var(--ring) !important;
+  border-color: color-mix(in oklab, var(--ring) 45%, transparent) !important;
+}
+
+/* Navbar / Sidebar */
+.navbar-dark.bg-dark {
+  background: color-mix(in oklab, var(--bg) 65%, black) !important;
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+}
+.sidebar {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--bg) 85%, black),
+    color-mix(in oklab, var(--bg) 95%, black)
+  ) !important;
+  backdrop-filter: blur(6px);
+}
+.sidebar .nav-link {
+  color: color-mix(in oklab, var(--text) 75%, transparent) !important;
+}
+.sidebar .nav-link.active,
+.sidebar .nav-link:hover {
+  color: var(--text) !important;
+  background: rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Section headers */
+.card-header {
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--primary) 22%, transparent) 0%,
+    color-mix(in oklab, var(--primary) 8%, transparent) 100%
+  ) !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+
+/* Modal */
+.modal-content {
+  background: color-mix(in oklab, var(--bg) 96%, white) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 16px !important;
+}
+.modal-header {
+  border-bottom: 1px solid var(--border) !important;
+}
+.modal-footer {
+  border-top: 1px solid var(--border) !important;
+}
+
+/* Icon circle utility */
+.icon-circle {
+  border: 1px solid var(--border);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 6px 16px rgba(0, 0, 0, 0.15);
+  background: var(--card);
+}
+
+/* Table */
+.table {
+  color: var(--text);
+}
+.table thead th {
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+.table tbody tr {
+  border-bottom: 1px solid color-mix(in oklab, var(--text) 8%, transparent);
+}
+
+/* Alerts */
+.alert-info {
+  background: color-mix(in oklab, var(--primary) 14%, transparent) !important;
+  color: color-mix(in oklab, var(--primary) 70%, white) !important;
+  border: 1px solid color-mix(in oklab, var(--primary) 28%, transparent) !important;
+}
+
+/* Links */
+a {
+  color: var(--primary);
+}
+a:hover {
+  color: var(--primary-600);
+}
+
+/* Bootstrap dark overrides */
+:root[data-theme='dark'] .card,
+:root[data-theme='dark'] .card-body,
+:root[data-theme='dark'] .card-header,
+:root[data-theme='dark'] .card-footer {
+  background-color: var(--card) !important;
+  color: var(--text) !important;
+}
+
+:root[data-theme='dark'] .nav-tabs {
+  border-bottom: 1px solid var(--border) !important;
+}
+:root[data-theme='dark'] .nav-tabs .nav-link {
+  color: color-mix(in oklab, var(--text) 75%, transparent) !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  border-top-left-radius: 0.5rem !important;
+  border-top-right-radius: 0.5rem !important;
+}
+:root[data-theme='dark'] .nav-tabs .nav-link:hover {
+  color: var(--text) !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+  border-color: var(--border) var(--border) transparent !important;
+}
+:root[data-theme='dark'] .nav-tabs .nav-link.active {
+  color: var(--text) !important;
+  background: var(--card) !important;
+  border-color: var(--border) var(--border) transparent !important;
+}
+
+:root[data-theme='dark'] .tab-content {
+  background: var(--card) !important;
+  border: 1px solid var(--border) !important;
+  border-top: none !important;
+  border-radius: 0 0 0.75rem 0.75rem !important;
+}
+
+:root[data-theme='dark'] .table,
+:root[data-theme='dark'] .table-striped > tbody > tr:nth-of-type(odd) {
+  --bs-table-accent-bg: rgba(255, 255, 255, 0.02) !important;
+  color: var(--text) !important;
+}
+:root[data-theme='dark'] .table thead th {
+  color: var(--muted) !important;
+}
+
+:root[data-theme='dark'] .dropdown-menu {
+  background: var(--card) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text) !important;
+}
+:root[data-theme='dark'] .dropdown-item {
+  color: var(--text) !important;
+}
+:root[data-theme='dark'] .dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+
+:root[data-theme='dark'] .form-control,
+:root[data-theme='dark'] .form-select {
+  background-color: rgba(255, 255, 255, 0.03) !important;
+  color: var(--text) !important;
+}
+
+/* Generic bg utilities */
+:root[data-theme='dark'] .bg-light {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+}
+:root[data-theme='dark'] .text-muted {
+  color: var(--muted) !important;
+}
+
+/* Topbar stylish pill button */
+#themeToggle.ui-btn-ghost {
+  border-radius: 999px !important;
+  padding: 6px 12px !important;
+}
+
+/* Cards in light */
+:root[data-theme='light'] .card,
+:root[data-theme='light'] .card-body,
+:root[data-theme='light'] .card-header,
+:root[data-theme='light'] .card-footer {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-color: var(--border) !important;
+}
+
+/* Dropdown stacking and styling */
+.navbar {
+  position: relative;
+  z-index: 1030;
+}
+.dropdown-menu {
+  z-index: 1050;
+}
+
+:root[data-theme='light'] .dropdown-menu {
+  box-shadow: 0 20px 40px rgba(2, 6, 23, 0.08);
+  border-radius: 12px !important;
+}
+
+/* Fix content not being overlapped by sticky topbar */
+.main-content {
+  position: relative;
+  z-index: 1;
+}
+
+/* Ensure app fills the viewport height */
+html,
+body {
+  height: 100%;
+}
+body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Container layout: sidebar + main should fill height */
+.container-fluid > .row {
+  min-height: calc(100vh - 56px);
+}
+
+/* Sidebar should stretch */
+.sidebar {
+  min-height: calc(100vh - 56px);
+}
+
+/* Dropdown fixes for dark */
+:root[data-theme='dark'] .dropdown-menu,
+:root[data-theme='dark'] .dropdown-menu .dropdown-item,
+:root[data-theme='dark'] .form-select option {
+  background-color: var(--card) !important;
+  color: var(--text) !important;
+}
+:root[data-theme='dark'] .form-select option:checked,
+:root[data-theme='dark'] .form-select option:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Light mode: full-height too */
+:root[data-theme='light'] .container-fluid > .row {
+  min-height: calc(100vh - 56px);
+}
+:root[data-theme='light'] .sidebar {
+  min-height: calc(100vh - 56px);
+}
+
+/* Topbar and sidebar styling inspired by login gradient */
+:root[data-theme='dark'] .navbar-dark.bg-dark {
+  background: linear-gradient(
+    135deg,
+    #1b243a 0%,
+    #141a2b 50%,
+    #0f1525 100%
+  ) !important;
+  border-bottom: 1px solid var(--border) !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
+:root[data-theme='light'] .navbar-dark.bg-dark {
+  background: linear-gradient(
+    135deg,
+    #e6eafe 0%,
+    #dde3ff 50%,
+    #d9defe 100%
+  ) !important;
+}
+:root[data-theme='light'] .navbar .navbar-brand,
+:root[data-theme='light'] .navbar .nav-link {
+  color: #0f172a !important;
+}
+:root[data-theme='light'] .navbar .nav-link:hover {
+  color: #3730a3 !important;
+}
+
+/* Brand and nav links */
+.navbar .navbar-brand {
+  font-weight: 800;
+  letter-spacing: 0.3px;
+}
+.navbar .nav-link {
+  transition: color 0.15s ease, background 0.15s ease;
+  border-radius: 10px;
+  padding: 8px 12px;
+}
+:root[data-theme='dark'] .navbar .nav-link:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+:root[data-theme='light'] .navbar .nav-link:hover {
+  background: rgba(15, 23, 42, 0.06);
+}
+
+/* Sidebar */
+:root[data-theme='dark'] .sidebar {
+  background: linear-gradient(180deg, #161e33 0%, #10182b 100%) !important;
+  border-right: 1px solid var(--border);
+}
+:root[data-theme='light'] .sidebar {
+  background: linear-gradient(180deg, #f6f7fb 0%, #f2f4fa 100%) !important;
+  border-right: 1px solid rgba(15, 23, 42, 0.08);
+}
+.sidebar .nav-link {
+  border-radius: 10px;
+  padding: 12px 16px;
+}
+.sidebar .nav-link i {
+  width: 22px;
+  text-align: center;
+}
+:root[data-theme='dark'] .sidebar .nav-link.active {
+  background: rgba(110, 139, 255, 0.18) !important;
+  color: #fff !important;
+}
+:root[data-theme='light'] .sidebar .nav-link.active {
+  background: rgba(79, 70, 229, 0.12) !important;
+  color: #3730a3 !important;
+}
+
+/* Section divider */
+.sidebar hr {
+  border-color: var(--border);
+}
