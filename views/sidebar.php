@@ -35,14 +35,14 @@ function isActive($needles, $current_page, $current_path) {
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link <?php echo isActive('organizations', $current_page, $current_path) ? 'active' : ''; ?>" 
+                    <a class="nav-link <?php echo ($current_page === 'index' && strpos($current_path, '/organizations/') !== false) ? 'active' : ''; ?>" 
                        href="<?php echo BASE_URL; ?>organizations/index.php">
                         <i class="fas fa-building"></i>
                         Organizations
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link <?php echo isActive('users', $current_page, $current_path) ? 'active' : ''; ?>" 
+                    <a class="nav-link <?php echo ($current_page === 'users' && strpos($current_path, '/organizations/') !== false) ? 'active' : ''; ?>" 
                        href="<?php echo BASE_URL; ?>organizations/users.php">
                         <i class="fas fa-users"></i>
                         Users
