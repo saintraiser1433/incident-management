@@ -116,6 +116,31 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             // Log audit
             log_audit('CREATE', 'incident_reports', $report_id);
             
+            // Send SMS notification to organization
+            try {
+                // Get organization contact number
+                $orgQuery = "SELECT org_name, contact_number FROM organizations WHERE id = ?";
+                $orgStmt = $db->prepare($orgQuery);
+                $orgStmt->execute([$organization_id]);
+                $organization = $orgStmt->fetch();
+                
+                if ($organization && !empty($organization['contact_number'])) {
+                    // Include SMS functionality
+                    require_once '../sms.php';
+                    
+                    $smsMessage = "MDRRMO-GLAN: New incident report #{$report_id} - {$title} ({$severity_level} severity) has been submitted to {$organization['org_name']}. Please check the system for details.";
+                    
+                    $smsResult = sendSMS($organization['contact_number'], $smsMessage);
+                    
+                    if (!$smsResult['success']) {
+                        error_log("SMS notification failed for report #{$report_id}: " . $smsResult['error']);
+                    }
+                }
+            } catch (Exception $smsError) {
+                // Don't fail the report creation if SMS fails
+                error_log("SMS notification error for report #{$report_id}: " . $smsError->getMessage());
+            }
+            
             // Redirect back if requested (e.g., from modal)
             if ($redirect === 'departments') {
                 redirect('reports/departments.php?created=1');

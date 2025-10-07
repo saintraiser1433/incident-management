@@ -62,6 +62,13 @@ function isActive($needles, $current_page, $current_path) {
                         Audit Logs
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link <?php echo isActive('sms-settings', $current_page, $current_path) ? 'active' : ''; ?>" 
+                       href="<?php echo BASE_URL; ?>dashboard/sms-settings.php">
+                        <i class="fas fa-sms"></i>
+                        SMS Settings
+                    </a>
+                </li>
                 
             <?php elseif ($_SESSION['user_role'] == 'Organization Account'): ?>
                 <li class="nav-item">
