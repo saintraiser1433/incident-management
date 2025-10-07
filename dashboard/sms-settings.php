@@ -179,8 +179,30 @@ try {
 
 <script>
 function testSMS() {
-    const modal = new bootstrap.Modal(document.getElementById('testSMSModal'));
-    modal.show();
+    try {
+        const modalEl = document.getElementById('testSMSModal');
+        if (!modalEl) {
+            console.error('Test SMS modal not found');
+            return;
+        }
+        
+        // Dispose any existing modal instance
+        const existingModal = bootstrap.Modal.getInstance(modalEl);
+        if (existingModal) {
+            existingModal.dispose();
+        }
+        
+        // Create and show new modal instance
+        const modal = new bootstrap.Modal(modalEl, {
+            backdrop: 'static',
+            keyboard: false
+        });
+        modal.show();
+        
+    } catch (error) {
+        console.error('Error opening test SMS modal:', error);
+        alert('Error opening test SMS modal. Please try again.');
+    }
 }
 
 function sendTestSMS() {
@@ -198,11 +220,11 @@ function sendTestSMS() {
         return;
     }
     
-    // Show loading state
-    const btn = event.target;
-    const originalText = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Sending...';
+    // Get the send button and show loading state
+    const sendBtn = document.querySelector('#testSMSModal .btn-primary');
+    const originalText = sendBtn.innerHTML;
+    sendBtn.disabled = true;
+    sendBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Sending...';
     
     // Send test SMS
     fetch('../sms.php', {
@@ -210,13 +232,17 @@ function sendTestSMS() {
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: `number=${encodeURIComponent(number)}&message=${encodeURIComponent(message)}&username=${encodeURIComponent('<?php echo $sms_settings['username'] ?? ''; ?>')}&password=${encodeURIComponent('<?php echo $sms_settings['password'] ?? ''; ?>')}`
+        body: `number=${encodeURIComponent(number)}&message=${encodeURIComponent(message)}`
     })
     .then(response => response.text())
     .then(data => {
         if (data.includes('Message sent with ID')) {
             alert('Test SMS sent successfully!');
-            bootstrap.Modal.getInstance(document.getElementById('testSMSModal')).hide();
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('testSMSModal'));
+            if (modal) {
+                modal.hide();
+            }
         } else {
             alert('Error sending SMS: ' + data);
         }
@@ -225,10 +251,24 @@ function sendTestSMS() {
         alert('Error sending SMS: ' + error.message);
     })
     .finally(() => {
-        btn.disabled = false;
-        btn.innerHTML = originalText;
+        sendBtn.disabled = false;
+        sendBtn.innerHTML = originalText;
     });
 }
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('SMS Settings page loaded successfully');
+    
+    // Clear test form when modal is hidden
+    const testModal = document.getElementById('testSMSModal');
+    if (testModal) {
+        testModal.addEventListener('hidden.bs.modal', function() {
+            document.getElementById('test_number').value = '';
+            document.getElementById('test_message').value = 'This is a test SMS from MDRRMO-GLAN Incident Reporting System.';
+        });
+    }
+});
 </script>
 
 <?php include '../views/footer.php'; ?>
