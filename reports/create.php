@@ -126,7 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             // Log audit
             log_audit('CREATE', 'incident_reports', $report_id);
             
-            // Send SMS notification to organization
+            // Send SMS notification to organization (outside transaction)
             try {
                 // Get organization contact number
                 $orgQuery = "SELECT org_name, contact_number FROM organizations WHERE id = ?";
@@ -159,7 +159,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $success_message = 'Incident report created successfully!';
             
         } catch (Exception $e) {
-            $db->rollBack();
+            // Only rollback if we're still in a transaction
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
             $error_message = 'Error creating incident report: ' . $e->getMessage();
         }
     }
@@ -172,6 +175,9 @@ $query = "SELECT * FROM organizations ORDER BY org_name";
 $stmt = $db->prepare($query);
 $stmt->execute();
 $organizations = $stmt->fetchAll();
+
+// Check if organization is pre-selected from departments page
+$preselected_org_id = $_GET['org_id'] ?? '';
 
 $page_title = 'Create Incident Report - ' . APP_NAME;
 include '../views/header.php';
@@ -293,7 +299,15 @@ include '../views/header.php';
                                         <option value="">Select Organization</option>
                                         <?php foreach ($organizations as $org): ?>
                                             <option value="<?php echo $org['id']; ?>" 
-                                                    <?php echo (isset($_POST['organization_id']) && $_POST['organization_id'] == $org['id']) ? 'selected' : ''; ?>>
+                                                    <?php 
+                                                    $is_selected = false;
+                                                    if (isset($_POST['organization_id']) && $_POST['organization_id'] == $org['id']) {
+                                                        $is_selected = true;
+                                                    } elseif (!empty($preselected_org_id) && $preselected_org_id == $org['id']) {
+                                                        $is_selected = true;
+                                                    }
+                                                    echo $is_selected ? 'selected' : '';
+                                                    ?>>
                                                 <?php echo htmlspecialchars($org['org_name']); ?>
                                             </option>
                                         <?php endforeach; ?>

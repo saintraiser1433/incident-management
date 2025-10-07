@@ -382,50 +382,77 @@ function toggleView(view) {
 
 function openReportForm(orgId, orgName) {
     try {
-        // Set form data
-        document.getElementById('selectedOrgId').value = orgId;
-        document.getElementById('selectedDeptName').textContent = orgName;
+        console.log('Opening report form for org:', orgId, orgName);
+        
+        // Check if Bootstrap is available
+        if (typeof bootstrap === 'undefined') {
+            console.error('Bootstrap is not loaded');
+            alert('System error: Bootstrap not loaded. Please refresh the page.');
+            return;
+        }
+        
+        // Set form data with error checking
+        const selectedOrgId = document.getElementById('selectedOrgId');
+        const selectedDeptName = document.getElementById('selectedDeptName');
+        
+        if (!selectedOrgId || !selectedDeptName) {
+            console.error('Required form elements not found');
+            alert('System error: Form elements not found. Please refresh the page.');
+            return;
+        }
+        
+        selectedOrgId.value = orgId;
+        selectedDeptName.textContent = orgName;
         
         // Set current date and time
         const now = new Date();
         const date = now.toISOString().split('T')[0];
         const time = now.toTimeString().slice(0, 5);
-        document.getElementById('incident_date').value = date;
-        document.getElementById('incident_time').value = time;
         
-        // Clear form fields
-        document.getElementById('title').value = '';
-        document.getElementById('description').value = '';
-        document.getElementById('category').value = '';
-        document.getElementById('severity_level').value = '';
-        document.getElementById('location').value = '';
-        document.getElementById('photos').value = '';
+        const incidentDate = document.getElementById('incident_date');
+        const incidentTime = document.getElementById('incident_time');
         
-        // Clear witnesses
+        if (incidentDate) incidentDate.value = date;
+        if (incidentTime) incidentTime.value = time;
+        
+        // Clear form fields safely
+        const fieldsToClear = ['title', 'description', 'category', 'severity_level', 'location', 'photos'];
+        fieldsToClear.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) field.value = '';
+        });
+        
+        // Clear witnesses safely
         const witnessesContainer = document.getElementById('witnessesContainer');
-        witnessesContainer.innerHTML = `
-            <div class="witness-entry row mb-2">
-                <div class="col-md-6">
-                    <input type="text" class="form-control" name="witness_name[]" placeholder="Witness Name">
+        if (witnessesContainer) {
+            witnessesContainer.innerHTML = `
+                <div class="witness-entry row mb-2">
+                    <div class="col-md-6">
+                        <input type="text" class="form-control" name="witness_name[]" placeholder="Witness Name">
+                    </div>
+                    <div class="col-md-6">
+                        <input type="text" class="form-control" name="witness_contact[]" placeholder="9XXXXXXXXX (10 digits)" 
+                               pattern="9[0-9]{9}" title="Enter exactly 10 digits starting with 9 (e.g., 9123456789)"
+                               maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10)">
+                    </div>
                 </div>
-                <div class="col-md-6">
-                    <input type="text" class="form-control" name="witness_contact[]" placeholder="9XXXXXXXXX (10 digits)" 
-                           pattern="9[0-9]{9}" title="Enter exactly 10 digits starting with 9 (e.g., 9123456789)"
-                           maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10)">
-                </div>
-            </div>
-        `;
+            `;
+        }
         
         // Get modal element and ensure it exists
         const modalEl = document.getElementById('reportModal');
         if (!modalEl) {
             console.error('Modal element not found');
+            alert('System error: Modal not found. Please refresh the page.');
             return;
         }
+        
+        console.log('Modal element found, creating Bootstrap modal instance');
         
         // Dispose any existing modal instance
         const existingModal = bootstrap.Modal.getInstance(modalEl);
         if (existingModal) {
+            console.log('Disposing existing modal instance');
             existingModal.dispose();
         }
         
@@ -435,30 +462,12 @@ function openReportForm(orgId, orgName) {
             keyboard: false
         });
         
-        // Add event listeners for modal events
-        modalEl.addEventListener('shown.bs.modal', function() {
-            console.log('Modal shown successfully');
-        });
+        console.log('Modal instance created, showing modal');
         
-        modalEl.addEventListener('hidden.bs.modal', function() {
-            console.log('Modal hidden');
-        });
+        // Show modal
+        modal.show();
         
-        // Show modal with fallback
-        try {
-            modal.show();
-        } catch (modalError) {
-            console.error('Modal show error:', modalError);
-            // Fallback: try to show modal after a short delay
-            setTimeout(() => {
-                try {
-                    modal.show();
-                } catch (retryError) {
-                    console.error('Modal retry failed:', retryError);
-                    alert('Unable to open report form. Please refresh the page and try again.');
-                }
-            }, 100);
-        }
+        console.log('Modal show() called successfully');
         
     } catch (error) {
         console.error('Error opening report form:', error);
@@ -510,6 +519,13 @@ async function handleReportSubmit(e) {
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize any required components
     console.log('Departments page loaded successfully');
+    
+    // Check if Bootstrap is available
+    if (typeof bootstrap === 'undefined') {
+        console.error('Bootstrap is not loaded on page load');
+    } else {
+        console.log('Bootstrap is available');
+    }
 });
 </script>
 

@@ -437,13 +437,13 @@ $organizations = $stmt->fetchAll();
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <div class="mb-3" id="contact_field" style="display: none;">
+                    <div class="mb-3" id="contact_field">
                         <label for="contact_number" class="form-label">Contact Number</label>
                         <input type="text" class="form-control" id="contact_number" name="contact_number" 
                                placeholder="9XXXXXXXXX (10 digits)" pattern="9[0-9]{9}" 
                                title="Enter exactly 10 digits starting with 9 (e.g., 9123456789)"
                                maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10)">
-                        <div class="form-text">Enter a Philippine mobile number for SMS notifications</div>
+                        <div class="form-text">Enter a Philippine mobile number for SMS notifications (optional for non-Responder roles)</div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -497,13 +497,13 @@ $organizations = $stmt->fetchAll();
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <div class="mb-3" id="edit_contact_field" style="display: none;">
+                    <div class="mb-3" id="edit_contact_field">
                         <label for="edit_contact_number" class="form-label">Contact Number</label>
                         <input type="text" class="form-control" id="edit_contact_number" name="contact_number" 
                                placeholder="9XXXXXXXXX (10 digits)" pattern="9[0-9]{9}" 
                                title="Enter exactly 10 digits starting with 9 (e.g., 9123456789)"
                                maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10)">
-                        <div class="form-text">Enter a Philippine mobile number for SMS notifications</div>
+                        <div class="form-text">Enter a Philippine mobile number for SMS notifications (optional for non-Responder roles)</div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -544,23 +544,19 @@ function toggleOrganization() {
     const role = document.getElementById('role').value;
     const orgField = document.getElementById('organization_field');
     const orgSelect = document.getElementById('organization_id');
-    const contactField = document.getElementById('contact_field');
     const contactInput = document.getElementById('contact_number');
     
     if (role === 'Organization Account') {
         orgField.style.display = 'block';
         orgSelect.required = true;
-        contactField.style.display = 'none';
         contactInput.required = false;
     } else if (role === 'Responder') {
         orgField.style.display = 'none';
         orgSelect.required = false;
-        contactField.style.display = 'block';
         contactInput.required = true;
     } else {
         orgField.style.display = 'none';
         orgSelect.required = false;
-        contactField.style.display = 'none';
         contactInput.required = false;
     }
 }
@@ -569,23 +565,19 @@ function toggleEditOrganization() {
     const role = document.getElementById('edit_role').value;
     const orgField = document.getElementById('edit_organization_field');
     const orgSelect = document.getElementById('edit_organization_id');
-    const contactField = document.getElementById('edit_contact_field');
     const contactInput = document.getElementById('edit_contact_number');
     
     if (role === 'Organization Account') {
         orgField.style.display = 'block';
         orgSelect.required = true;
-        contactField.style.display = 'none';
         contactInput.required = false;
     } else if (role === 'Responder') {
         orgField.style.display = 'none';
         orgSelect.required = false;
-        contactField.style.display = 'block';
         contactInput.required = true;
     } else {
         orgField.style.display = 'none';
         orgSelect.required = false;
-        contactField.style.display = 'none';
         contactInput.required = false;
     }
 }
