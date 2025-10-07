@@ -29,8 +29,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         
         if (empty($name) || empty($email) || empty($password) || empty($role)) {
             $error_message = 'Name, email, password, and role are required.';
-        } elseif ($role != 'Admin' && empty($organization_id)) {
-            $error_message = 'Organization is required for non-admin users.';
+        } elseif ($role != 'Admin' && $role != 'Responder' && empty($organization_id)) {
+            $error_message = 'Organization is required for Organization Account users.';
         } else {
             try {
                 // Check if email already exists
@@ -62,8 +62,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         
         if (empty($name) || empty($email) || empty($role)) {
             $error_message = 'Name, email, and role are required.';
-        } elseif ($role != 'Admin' && empty($organization_id)) {
-            $error_message = 'Organization is required for non-admin users.';
+        } elseif ($role != 'Admin' && $role != 'Responder' && empty($organization_id)) {
+            $error_message = 'Organization is required for Organization Account users.';
         } else {
             try {
                 // Check if email already exists (excluding current user)
@@ -372,7 +372,7 @@ function toggleOrganization() {
     const orgField = document.getElementById('organization_field');
     const orgSelect = document.getElementById('organization_id');
     
-    if (role === 'Admin') {
+    if (role === 'Admin' || role === 'Responder') {
         orgField.style.display = 'none';
         orgSelect.required = false;
     } else {
@@ -386,7 +386,7 @@ function toggleEditOrganization() {
     const orgField = document.getElementById('edit_organization_field');
     const orgSelect = document.getElementById('edit_organization_id');
     
-    if (role === 'Admin') {
+    if (role === 'Admin' || role === 'Responder') {
         orgField.style.display = 'none';
         orgSelect.required = false;
     } else {
