@@ -11,56 +11,83 @@ $page_title = 'All Incident Reports - ' . APP_NAME;
 include '../views/header.php';
 
 // Get filter parameters
+$search = $_GET['search'] ?? '';
 $status_filter = $_GET['status'] ?? '';
 $severity_filter = $_GET['severity'] ?? '';
 $category_filter = $_GET['category'] ?? '';
 $organization_filter = $_GET['organization'] ?? '';
 $date_from = $_GET['date_from'] ?? '';
 $date_to = $_GET['date_to'] ?? '';
+$page = max(1, (int)($_GET['page'] ?? 1));
+$per_page = 10;
+$offset = ($page - 1) * $per_page;
 
 // Build query
 $database = new Database();
 $db = $database->getConnection();
 
+$where_conditions = ["1=1"];
+$params = [];
+
+if (!empty($search)) {
+    $where_conditions[] = "(ir.title LIKE ? OR ir.description LIKE ? OR u.name LIKE ?)";
+    $params[] = "%$search%";
+    $params[] = "%$search%";
+    $params[] = "%$search%";
+}
+
+if ($status_filter) {
+    $where_conditions[] = "ir.status = ?";
+    $params[] = $status_filter;
+}
+
+if ($severity_filter) {
+    $where_conditions[] = "ir.severity_level = ?";
+    $params[] = $severity_filter;
+}
+
+if ($category_filter) {
+    $where_conditions[] = "ir.category = ?";
+    $params[] = $category_filter;
+}
+
+if ($organization_filter) {
+    $where_conditions[] = "ir.organization_id = ?";
+    $params[] = $organization_filter;
+}
+
+if ($date_from) {
+    $where_conditions[] = "ir.incident_date >= ?";
+    $params[] = $date_from;
+}
+
+if ($date_to) {
+    $where_conditions[] = "ir.incident_date <= ?";
+    $params[] = $date_to;
+}
+
+$where_clause = implode(" AND ", $where_conditions);
+
+// Get total count for pagination
+$count_query = "SELECT COUNT(*) as total 
+                FROM incident_reports ir 
+                LEFT JOIN users u ON ir.reported_by = u.id 
+                LEFT JOIN organizations o ON ir.organization_id = o.id 
+                WHERE $where_clause";
+$count_stmt = $db->prepare($count_query);
+$count_stmt->execute($params);
+$total_records = $count_stmt->fetch()['total'];
+$total_pages = ceil($total_records / $per_page);
+
+// Get reports with pagination
 $query = "SELECT ir.*, u.name as reporter_name, o.org_name, rq.priority_number 
           FROM incident_reports ir 
           LEFT JOIN users u ON ir.reported_by = u.id 
           LEFT JOIN organizations o ON ir.organization_id = o.id 
           LEFT JOIN report_queue rq ON rq.report_id = ir.id 
-          WHERE 1=1";
-$params = [];
-
-if ($status_filter) {
-    $query .= " AND ir.status = ?";
-    $params[] = $status_filter;
-}
-
-if ($severity_filter) {
-    $query .= " AND ir.severity_level = ?";
-    $params[] = $severity_filter;
-}
-
-if ($category_filter) {
-    $query .= " AND ir.category = ?";
-    $params[] = $category_filter;
-}
-
-if ($organization_filter) {
-    $query .= " AND ir.organization_id = ?";
-    $params[] = $organization_filter;
-}
-
-if ($date_from) {
-    $query .= " AND ir.incident_date >= ?";
-    $params[] = $date_from;
-}
-
-if ($date_to) {
-    $query .= " AND ir.incident_date <= ?";
-    $params[] = $date_to;
-}
-
-$query .= " ORDER BY ir.created_at DESC";
+          WHERE $where_clause
+          ORDER BY ir.created_at DESC
+          LIMIT $per_page OFFSET $offset";
 
 $stmt = $db->prepare($query);
 $stmt->execute($params);
@@ -100,6 +127,11 @@ $organizations = $stmt->fetchAll();
                 </div>
                 <div class="card-body">
                     <form method="GET" class="row g-3">
+                        <div class="col-md-3">
+                            <label for="search" class="form-label">Search</label>
+                            <input type="text" class="form-control form-control-sm" id="search" name="search" 
+                                   placeholder="Search by title, description, or reporter..." value="<?php echo htmlspecialchars($search); ?>">
+                        </div>
                         <div class="col-md-2">
                             <label for="status" class="form-label">Status</label>
                             <select class="form-select form-select-sm" id="status" name="status">
@@ -168,10 +200,13 @@ $organizations = $stmt->fetchAll();
             
             <!-- Reports Table -->
             <div class="card">
-                <div class="card-header">
+                <div class="card-header d-flex justify-content-between align-items-center">
                     <h6 class="mb-0">
-                        <i class="fas fa-list me-2"></i>Reports (<?php echo count($reports); ?>)
+                        <i class="fas fa-list me-2"></i>Reports (<?php echo $total_records; ?>)
                     </h6>
+                    <small class="text-muted">
+                        Showing <?php echo count($reports); ?> of <?php echo $total_records; ?> reports
+                    </small>
                 </div>
                 <div class="card-body">
                     <?php if (empty($reports)): ?>
@@ -246,6 +281,73 @@ $organizations = $stmt->fetchAll();
                                 </tbody>
                             </table>
                         </div>
+                    <?php endif; ?>
+                    
+                    <!-- Pagination -->
+                    <?php if ($total_pages > 1): ?>
+                    <div class="card-footer">
+                        <nav aria-label="Reports pagination">
+                            <ul class="pagination justify-content-center mb-0">
+                                <!-- Previous Page -->
+                                <?php if ($page > 1): ?>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page - 1])); ?>">
+                                            <i class="fas fa-chevron-left"></i> Previous
+                                        </a>
+                                    </li>
+                                <?php endif; ?>
+                                
+                                <!-- Page Numbers -->
+                                <?php
+                                $start_page = max(1, $page - 2);
+                                $end_page = min($total_pages, $page + 2);
+                                
+                                if ($start_page > 1): ?>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => 1])); ?>">1</a>
+                                    </li>
+                                    <?php if ($start_page > 2): ?>
+                                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                                    <?php endif; ?>
+                                <?php endif; ?>
+                                
+                                <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
+                                    <li class="page-item <?php echo $i == $page ? 'active' : ''; ?>">
+                                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $i])); ?>">
+                                            <?php echo $i; ?>
+                                        </a>
+                                    </li>
+                                <?php endfor; ?>
+                                
+                                <?php if ($end_page < $total_pages): ?>
+                                    <?php if ($end_page < $total_pages - 1): ?>
+                                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                                    <?php endif; ?>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $total_pages])); ?>">
+                                            <?php echo $total_pages; ?>
+                                        </a>
+                                    </li>
+                                <?php endif; ?>
+                                
+                                <!-- Next Page -->
+                                <?php if ($page < $total_pages): ?>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page + 1])); ?>">
+                                            Next <i class="fas fa-chevron-right"></i>
+                                        </a>
+                                    </li>
+                                <?php endif; ?>
+                            </ul>
+                        </nav>
+                        
+                        <div class="text-center text-muted">
+                            <small>
+                                Page <?php echo $page; ?> of <?php echo $total_pages; ?> 
+                                (<?php echo $total_records; ?> total reports)
+                            </small>
+                        </div>
+                    </div>
                     <?php endif; ?>
                 </div>
             </div>

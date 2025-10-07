@@ -26,11 +26,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $password = $_POST['password'];
         $role = sanitize_input($_POST['role']);
         $organization_id = sanitize_input($_POST['organization_id']);
+        $contact_number = sanitize_input($_POST['contact_number']);
         
         if (empty($name) || empty($email) || empty($password) || empty($role)) {
             $error_message = 'Name, email, password, and role are required.';
         } elseif ($role != 'Admin' && $role != 'Responder' && empty($organization_id)) {
             $error_message = 'Organization is required for Organization Account users.';
+        } elseif ($role === 'Responder' && !empty($contact_number) && !preg_match('/^9\d{9}$/', $contact_number)) {
+            $error_message = 'Contact number must be a valid Philippine mobile number (format: 9XXXXXXXXX).';
         } else {
             try {
                 // Check if email already exists
@@ -41,9 +44,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $error_message = 'Email address already exists.';
                 } else {
                     $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-                    $query = "INSERT INTO users (name, email, password, role, organization_id) VALUES (?, ?, ?, ?, ?)";
+                    $query = "INSERT INTO users (name, email, password, role, organization_id, contact_number) VALUES (?, ?, ?, ?, ?, ?)";
                     $stmt = $db->prepare($query);
-                    $stmt->execute([$name, $email, $hashed_password, $role, $organization_id ?: null]);
+                    $stmt->execute([$name, $email, $hashed_password, $role, $organization_id ?: null, $contact_number ?: null]);
                     
                     log_audit('CREATE', 'users', $db->lastInsertId());
                     $success_message = 'User created successfully!';
@@ -58,12 +61,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $email = sanitize_input($_POST['email']);
         $role = sanitize_input($_POST['role']);
         $organization_id = sanitize_input($_POST['organization_id']);
+        $contact_number = sanitize_input($_POST['contact_number']);
         $password = $_POST['password'];
         
         if (empty($name) || empty($email) || empty($role)) {
             $error_message = 'Name, email, and role are required.';
         } elseif ($role != 'Admin' && $role != 'Responder' && empty($organization_id)) {
             $error_message = 'Organization is required for Organization Account users.';
+        } elseif ($role === 'Responder' && !empty($contact_number) && !preg_match('/^9\d{9}$/', $contact_number)) {
+            $error_message = 'Contact number must be a valid Philippine mobile number (format: 9XXXXXXXXX).';
         } else {
             try {
                 // Check if email already exists (excluding current user)
@@ -75,13 +81,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 } else {
                     if (!empty($password)) {
                         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-                        $query = "UPDATE users SET name = ?, email = ?, password = ?, role = ?, organization_id = ? WHERE id = ?";
+                        $query = "UPDATE users SET name = ?, email = ?, password = ?, role = ?, organization_id = ?, contact_number = ? WHERE id = ?";
                         $stmt = $db->prepare($query);
-                        $stmt->execute([$name, $email, $hashed_password, $role, $organization_id ?: null, $id]);
+                        $stmt->execute([$name, $email, $hashed_password, $role, $organization_id ?: null, $contact_number ?: null, $id]);
                     } else {
-                        $query = "UPDATE users SET name = ?, email = ?, role = ?, organization_id = ? WHERE id = ?";
+                        $query = "UPDATE users SET name = ?, email = ?, role = ?, organization_id = ?, contact_number = ? WHERE id = ?";
                         $stmt = $db->prepare($query);
-                        $stmt->execute([$name, $email, $role, $organization_id ?: null, $id]);
+                        $stmt->execute([$name, $email, $role, $organization_id ?: null, $contact_number ?: null, $id]);
                     }
                     
                     log_audit('UPDATE', 'users', $id);
@@ -121,13 +127,46 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 }
 
-// Get all users with organization info
+// Handle search and filtering
+$search = $_GET['search'] ?? '';
+$role_filter = $_GET['role'] ?? '';
+$page = max(1, (int)($_GET['page'] ?? 1));
+$per_page = 10;
+$offset = ($page - 1) * $per_page;
+
+// Build query with filters
+$where_conditions = [];
+$params = [];
+
+if (!empty($search)) {
+    $where_conditions[] = "(u.name LIKE ? OR u.email LIKE ?)";
+    $params[] = "%$search%";
+    $params[] = "%$search%";
+}
+
+if (!empty($role_filter)) {
+    $where_conditions[] = "u.role = ?";
+    $params[] = $role_filter;
+}
+
+$where_clause = !empty($where_conditions) ? "WHERE " . implode(" AND ", $where_conditions) : "";
+
+// Get total count for pagination
+$count_query = "SELECT COUNT(*) as total FROM users u LEFT JOIN organizations o ON u.organization_id = o.id $where_clause";
+$count_stmt = $db->prepare($count_query);
+$count_stmt->execute($params);
+$total_records = $count_stmt->fetch()['total'];
+$total_pages = ceil($total_records / $per_page);
+
+// Get users with pagination
 $query = "SELECT u.*, o.org_name 
           FROM users u 
           LEFT JOIN organizations o ON u.organization_id = o.id 
-          ORDER BY u.name";
+          $where_clause
+          ORDER BY u.name 
+          LIMIT $per_page OFFSET $offset";
 $stmt = $db->prepare($query);
-$stmt->execute();
+$stmt->execute($params);
 $users = $stmt->fetchAll();
 
 // Get organizations for dropdown
@@ -171,12 +210,53 @@ $organizations = $stmt->fetchAll();
                 </div>
             <?php endif; ?>
             
+            <!-- Search and Filter Controls -->
+            <div class="card mb-3">
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-4">
+                            <label for="search" class="form-label">Search</label>
+                            <input type="text" class="form-control" id="search" name="search" 
+                                   placeholder="Search by name or email..." value="<?php echo htmlspecialchars($search); ?>">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="role" class="form-label">Filter by Role</label>
+                            <select class="form-select" id="role" name="role">
+                                <option value="">All Roles</option>
+                                <option value="Admin" <?php echo $role_filter === 'Admin' ? 'selected' : ''; ?>>Admin</option>
+                                <option value="Organization Account" <?php echo $role_filter === 'Organization Account' ? 'selected' : ''; ?>>Organization Account</option>
+                                <option value="Responder" <?php echo $role_filter === 'Responder' ? 'selected' : ''; ?>>Responder</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search me-1"></i>Search
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="d-grid">
+                                <a href="users.php" class="btn btn-outline-secondary">
+                                    <i class="fas fa-times me-1"></i>Clear
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
             <!-- Users Table -->
             <div class="card">
-                <div class="card-header">
+                <div class="card-header d-flex justify-content-between align-items-center">
                     <h6 class="mb-0">
-                        <i class="fas fa-list me-2"></i>Users (<?php echo count($users); ?>)
+                        <i class="fas fa-list me-2"></i>Users (<?php echo $total_records; ?>)
                     </h6>
+                    <small class="text-muted">
+                        Showing <?php echo count($users); ?> of <?php echo $total_records; ?> users
+                    </small>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -188,6 +268,7 @@ $organizations = $stmt->fetchAll();
                                     <th>Email</th>
                                     <th>Role</th>
                                     <th>Organization</th>
+                                    <th>Contact Number</th>
                                     <th>Created</th>
                                     <th>Actions</th>
                                 </tr>
@@ -215,6 +296,15 @@ $organizations = $stmt->fetchAll();
                                             <span class="badge <?php echo $badge_class; ?>"><?php echo $user['role']; ?></span>
                                         </td>
                                         <td><?php echo htmlspecialchars($user['org_name'] ?? 'N/A'); ?></td>
+                                        <td>
+                                            <?php if (!empty($user['contact_number'])): ?>
+                                                <span class="badge bg-success">
+                                                    <i class="fas fa-phone me-1"></i><?php echo htmlspecialchars($user['contact_number']); ?>
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="text-muted">No contact</span>
+                                            <?php endif; ?>
+                                        </td>
                                         <td><?php echo format_date($user['created_at']); ?></td>
                                         <td>
                                             <button type="button" class="btn btn-sm btn-outline-primary" 
@@ -233,6 +323,73 @@ $organizations = $stmt->fetchAll();
                             </tbody>
                         </table>
                     </div>
+                    
+                    <!-- Pagination -->
+                    <?php if ($total_pages > 1): ?>
+                    <div class="card-footer">
+                        <nav aria-label="Users pagination">
+                            <ul class="pagination justify-content-center mb-0">
+                                <!-- Previous Page -->
+                                <?php if ($page > 1): ?>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page - 1])); ?>">
+                                            <i class="fas fa-chevron-left"></i> Previous
+                                        </a>
+                                    </li>
+                                <?php endif; ?>
+                                
+                                <!-- Page Numbers -->
+                                <?php
+                                $start_page = max(1, $page - 2);
+                                $end_page = min($total_pages, $page + 2);
+                                
+                                if ($start_page > 1): ?>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => 1])); ?>">1</a>
+                                    </li>
+                                    <?php if ($start_page > 2): ?>
+                                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                                    <?php endif; ?>
+                                <?php endif; ?>
+                                
+                                <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
+                                    <li class="page-item <?php echo $i == $page ? 'active' : ''; ?>">
+                                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $i])); ?>">
+                                            <?php echo $i; ?>
+                                        </a>
+                                    </li>
+                                <?php endfor; ?>
+                                
+                                <?php if ($end_page < $total_pages): ?>
+                                    <?php if ($end_page < $total_pages - 1): ?>
+                                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                                    <?php endif; ?>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $total_pages])); ?>">
+                                            <?php echo $total_pages; ?>
+                                        </a>
+                                    </li>
+                                <?php endif; ?>
+                                
+                                <!-- Next Page -->
+                                <?php if ($page < $total_pages): ?>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page + 1])); ?>">
+                                            Next <i class="fas fa-chevron-right"></i>
+                                        </a>
+                                    </li>
+                                <?php endif; ?>
+                            </ul>
+                        </nav>
+                        
+                        <div class="text-center text-muted">
+                            <small>
+                                Page <?php echo $page; ?> of <?php echo $total_pages; ?> 
+                                (<?php echo $total_records; ?> total users)
+                            </small>
+                        </div>
+                    </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </main>
@@ -279,6 +436,14 @@ $organizations = $stmt->fetchAll();
                                 <option value="<?php echo $org['id']; ?>"><?php echo htmlspecialchars($org['org_name']); ?></option>
                             <?php endforeach; ?>
                         </select>
+                    </div>
+                    <div class="mb-3" id="contact_field" style="display: none;">
+                        <label for="contact_number" class="form-label">Contact Number</label>
+                        <input type="text" class="form-control" id="contact_number" name="contact_number" 
+                               placeholder="9XXXXXXXXX (10 digits)" pattern="9[0-9]{9}" 
+                               title="Enter exactly 10 digits starting with 9 (e.g., 9123456789)"
+                               maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10)">
+                        <div class="form-text">Enter a Philippine mobile number for SMS notifications</div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -332,6 +497,14 @@ $organizations = $stmt->fetchAll();
                             <?php endforeach; ?>
                         </select>
                     </div>
+                    <div class="mb-3" id="edit_contact_field" style="display: none;">
+                        <label for="edit_contact_number" class="form-label">Contact Number</label>
+                        <input type="text" class="form-control" id="edit_contact_number" name="contact_number" 
+                               placeholder="9XXXXXXXXX (10 digits)" pattern="9[0-9]{9}" 
+                               title="Enter exactly 10 digits starting with 9 (e.g., 9123456789)"
+                               maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10)">
+                        <div class="form-text">Enter a Philippine mobile number for SMS notifications</div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -371,13 +544,24 @@ function toggleOrganization() {
     const role = document.getElementById('role').value;
     const orgField = document.getElementById('organization_field');
     const orgSelect = document.getElementById('organization_id');
+    const contactField = document.getElementById('contact_field');
+    const contactInput = document.getElementById('contact_number');
     
     if (role === 'Organization Account') {
         orgField.style.display = 'block';
         orgSelect.required = true;
+        contactField.style.display = 'none';
+        contactInput.required = false;
+    } else if (role === 'Responder') {
+        orgField.style.display = 'none';
+        orgSelect.required = false;
+        contactField.style.display = 'block';
+        contactInput.required = true;
     } else {
         orgField.style.display = 'none';
         orgSelect.required = false;
+        contactField.style.display = 'none';
+        contactInput.required = false;
     }
 }
 
@@ -385,13 +569,24 @@ function toggleEditOrganization() {
     const role = document.getElementById('edit_role').value;
     const orgField = document.getElementById('edit_organization_field');
     const orgSelect = document.getElementById('edit_organization_id');
+    const contactField = document.getElementById('edit_contact_field');
+    const contactInput = document.getElementById('edit_contact_number');
     
     if (role === 'Organization Account') {
         orgField.style.display = 'block';
         orgSelect.required = true;
+        contactField.style.display = 'none';
+        contactInput.required = false;
+    } else if (role === 'Responder') {
+        orgField.style.display = 'none';
+        orgSelect.required = false;
+        contactField.style.display = 'block';
+        contactInput.required = true;
     } else {
         orgField.style.display = 'none';
         orgSelect.required = false;
+        contactField.style.display = 'none';
+        contactInput.required = false;
     }
 }
 
@@ -401,6 +596,7 @@ function editUser(user) {
     document.getElementById('edit_email').value = user.email;
     document.getElementById('edit_role').value = user.role;
     document.getElementById('edit_organization_id').value = user.organization_id || '';
+    document.getElementById('edit_contact_number').value = user.contact_number || '';
     
     toggleEditOrganization();
     new bootstrap.Modal(document.getElementById('editModal')).show();

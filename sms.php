@@ -65,12 +65,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['message']) && isset($_
     $number = $_POST['number'];
     $message = $_POST['message'];
     
+    // Add debug logging
+    error_log("SMS Test Request - Number: $number, Message: $message");
+    
     $result = sendSMS($number, $message);
     
     if ($result['success']) {
         echo "Message sent with ID: " . $result['message_id'] . PHP_EOL;
+        error_log("SMS Test Success - Message ID: " . $result['message_id']);
     } else {
         echo "Error sending message: " . $result['error'] . PHP_EOL;
+        error_log("SMS Test Error: " . $result['error']);
         http_response_code(400);
     }
 } else {

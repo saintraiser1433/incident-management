@@ -111,8 +111,13 @@ try {
                             
                             <div class="col-md-6 mb-3">
                                 <label for="password" class="form-label">SMS Gateway Password *</label>
-                                <input type="password" class="form-control" id="password" name="password" 
-                                       value="<?php echo htmlspecialchars($sms_settings['password'] ?? ''); ?>" required>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="password" name="password" 
+                                           value="<?php echo htmlspecialchars($sms_settings['password'] ?? ''); ?>" required>
+                                    <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                        <i class="fas fa-eye" id="togglePasswordIcon"></i>
+                                    </button>
+                                </div>
                                 <div class="form-text">Enter your SMS gateway password</div>
                             </div>
                         </div>
@@ -157,7 +162,9 @@ try {
                                 <div class="mb-3">
                                     <label for="test_number" class="form-label">Test Phone Number *</label>
                                     <input type="text" class="form-control" id="test_number" name="test_number" 
-                                           placeholder="9XXXXXXXXX" required>
+                                           placeholder="9XXXXXXXXX (10 digits)" pattern="9[0-9]{9}" 
+                                           title="Enter exactly 10 digits starting with 9 (e.g., 9123456789)"
+                                           maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10)" required>
                                     <div class="form-text">Enter a Philippine mobile number (format: 9XXXXXXXXX)</div>
                                 </div>
                                 <div class="mb-3">
@@ -177,6 +184,35 @@ try {
     </div>
 </div>
 
+<style>
+/* Minimal CSS for test SMS modal */
+#testSMSModal {
+    z-index: 1055 !important;
+}
+
+#testSMSModal .modal-dialog {
+    z-index: 1060 !important;
+    max-width: 500px;
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    margin: 0 !important;
+}
+
+#testSMSModal .modal-content {
+    z-index: 1065 !important;
+}
+
+/* Ensure form elements are clickable */
+#testSMSModal input,
+#testSMSModal textarea,
+#testSMSModal button {
+    z-index: 1070 !important;
+    pointer-events: auto !important;
+}
+</style>
+
 <script>
 function testSMS() {
     try {
@@ -192,12 +228,34 @@ function testSMS() {
             existingModal.dispose();
         }
         
-        // Create and show new modal instance
+        // Create new modal instance with simple configuration
         const modal = new bootstrap.Modal(modalEl, {
-            backdrop: 'static',
-            keyboard: false
+            backdrop: false,
+            keyboard: true,
+            focus: true
         });
+        
+        // Add event listeners for modal events
+        modalEl.addEventListener('shown.bs.modal', function() {
+            console.log('Test SMS modal shown successfully');
+            // Force visibility after modal is shown
+            modalEl.style.display = 'block';
+            modalEl.style.zIndex = '1055';
+        });
+        
+        modalEl.addEventListener('hidden.bs.modal', function() {
+            console.log('Test SMS modal hidden');
+        });
+        
+        // Show modal and force visibility
         modal.show();
+        
+        // Force modal to be visible
+        setTimeout(() => {
+            modalEl.style.display = 'block';
+            modalEl.classList.add('show');
+            modalEl.setAttribute('aria-hidden', 'false');
+        }, 10);
         
     } catch (error) {
         console.error('Error opening test SMS modal:', error);
@@ -221,7 +279,19 @@ function sendTestSMS() {
     }
     
     // Get the send button and show loading state
-    const sendBtn = document.querySelector('#testSMSModal .btn-primary');
+    let sendBtn = document.querySelector('#testSMSModal .btn-primary');
+    if (!sendBtn) {
+        // Fallback selector
+        sendBtn = document.querySelector('#testSMSModal button[onclick="sendTestSMS()"]');
+    }
+    if (!sendBtn) {
+        // Another fallback
+        sendBtn = document.querySelector('#testSMSModal .btn:last-child');
+    }
+    if (!sendBtn) {
+        alert('Send button not found');
+        return;
+    }
     const originalText = sendBtn.innerHTML;
     sendBtn.disabled = true;
     sendBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Sending...';
@@ -234,8 +304,12 @@ function sendTestSMS() {
         },
         body: `number=${encodeURIComponent(number)}&message=${encodeURIComponent(message)}`
     })
-    .then(response => response.text())
+    .then(response => {
+        console.log('Response status:', response.status);
+        return response.text();
+    })
     .then(data => {
+        console.log('SMS Response:', data);
         if (data.includes('Message sent with ID')) {
             alert('Test SMS sent successfully!');
             // Close modal
@@ -248,6 +322,7 @@ function sendTestSMS() {
         }
     })
     .catch(error => {
+        console.error('SMS Error:', error);
         alert('Error sending SMS: ' + error.message);
     })
     .finally(() => {
@@ -259,6 +334,25 @@ function sendTestSMS() {
 // Initialize page
 document.addEventListener('DOMContentLoaded', function() {
     console.log('SMS Settings page loaded successfully');
+    
+    // Password toggle functionality
+    const togglePasswordBtn = document.getElementById('togglePassword');
+    const passwordInput = document.getElementById('password');
+    const togglePasswordIcon = document.getElementById('togglePasswordIcon');
+    
+    if (togglePasswordBtn && passwordInput && togglePasswordIcon) {
+        togglePasswordBtn.addEventListener('click', function() {
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                togglePasswordIcon.classList.remove('fa-eye');
+                togglePasswordIcon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                togglePasswordIcon.classList.remove('fa-eye-slash');
+                togglePasswordIcon.classList.add('fa-eye');
+            }
+        });
+    }
     
     // Clear test form when modal is hidden
     const testModal = document.getElementById('testSMSModal');

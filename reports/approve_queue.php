@@ -70,15 +70,13 @@ try {
 
     $db->commit();
     
-    // Send SMS notification for approval
+    // Send SMS notification for approval (ONLY to responders, NOT to departments)
     try {
-        // Get reporter and organization details
-        $detailsQuery = "SELECT u.name as reporter_name, u.email as reporter_email, 
-                               o.org_name, o.contact_number as org_contact,
+        // Get responder details for SMS notification
+        $detailsQuery = "SELECT u.name as reporter_name, u.email as reporter_email, u.contact_number as reporter_contact,
                                ir.title, ir.severity_level
                         FROM incident_reports ir 
                         LEFT JOIN users u ON ir.reported_by = u.id 
-                        LEFT JOIN organizations o ON ir.organization_id = o.id 
                         WHERE ir.id = ?";
         $detailsStmt = $db->prepare($detailsQuery);
         $detailsStmt->execute([$queue['report_id']]);
@@ -87,13 +85,13 @@ try {
         // Include SMS functionality
         require_once '../sms.php';
         
-        // Send SMS to organization about approval
-        if ($details && !empty($details['org_contact'])) {
-            $smsMessage = "MDRRMO-GLAN: Report #{$queue['report_id']} '{$details['title']}' has been approved and assigned priority #{$next_priority}. Status: In Progress.";
-            $smsResult = sendSMS($details['org_contact'], $smsMessage);
+        // Send SMS ONLY to responder (reporter) about approval
+        if ($details && !empty($details['reporter_contact'])) {
+            $smsMessage = "MDRRMO-GLAN: Your incident report #{$queue['report_id']} '{$details['title']}' has been approved and assigned priority #{$next_priority}. Status: In Progress.";
+            $smsResult = sendSMS($details['reporter_contact'], $smsMessage);
             
             if (!$smsResult['success']) {
-                error_log("SMS notification failed for report #{$queue['report_id']} approval: " . $smsResult['error']);
+                error_log("SMS notification failed for responder report #{$queue['report_id']} approval: " . $smsResult['error']);
             }
         }
         

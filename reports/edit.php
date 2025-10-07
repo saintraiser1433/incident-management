@@ -105,15 +105,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             // Log audit
             log_audit('UPDATE', 'incident_reports', $report_id);
             
-            // Send SMS notification for status changes
+            // Send SMS notification for status changes (ONLY to responders, NOT to departments)
             if ($status != $report['status']) {
                 try {
-                    // Get reporter and organization details
-                    $detailsQuery = "SELECT u.name as reporter_name, u.email as reporter_email, 
-                                           o.org_name, o.contact_number as org_contact
+                    // Get reporter details for SMS notification
+                    $detailsQuery = "SELECT u.name as reporter_name, u.email as reporter_email, u.contact_number as reporter_contact
                                     FROM incident_reports ir 
                                     LEFT JOIN users u ON ir.reported_by = u.id 
-                                    LEFT JOIN organizations o ON ir.organization_id = o.id 
                                     WHERE ir.id = ?";
                     $detailsStmt = $db->prepare($detailsQuery);
                     $detailsStmt->execute([$report_id]);
@@ -122,19 +120,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     // Include SMS functionality
                     require_once '../sms.php';
                     
-                    // Send SMS to organization if status changed
-                    if ($details && !empty($details['org_contact'])) {
-                        $smsMessage = "MDRRMO-GLAN: Report #{$report_id} status updated to '{$status}' by {$_SESSION['user_name']}. Please check the system for details.";
-                        $smsResult = sendSMS($details['org_contact'], $smsMessage);
+                    // Send SMS ONLY to responder (reporter) if status changed
+                    if ($details && !empty($details['reporter_contact'])) {
+                        $smsMessage = "MDRRMO-GLAN: Your incident report #{$report_id} status has been updated to '{$status}' by {$_SESSION['user_name']}. Please check the system for details.";
+                        $smsResult = sendSMS($details['reporter_contact'], $smsMessage);
                         
                         if (!$smsResult['success']) {
-                            error_log("SMS notification failed for report #{$report_id} status update: " . $smsResult['error']);
+                            error_log("SMS notification failed for responder report #{$report_id} status update: " . $smsResult['error']);
                         }
                     }
-                    
-                    // Send SMS to reporter if they have a contact number (if available in user table)
-                    // Note: This would require adding contact_number to users table
-                    // For now, we'll skip this as the current user table doesn't have contact numbers
                     
                 } catch (Exception $smsError) {
                     // Don't fail the update if SMS fails

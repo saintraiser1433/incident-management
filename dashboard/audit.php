@@ -14,6 +14,7 @@ $database = new Database();
 $db = $database->getConnection();
 
 // Get filter parameters
+$search = $_GET['search'] ?? '';
 $user_filter = $_GET['user'] ?? '';
 $action_filter = $_GET['action'] ?? '';
 $table_filter = $_GET['table'] ?? '';
@@ -24,38 +25,61 @@ $limit = 50;
 $offset = ($page - 1) * $limit;
 
 // Build query
-$query = "SELECT al.*, u.name as user_name 
-          FROM audit_logs al 
-          LEFT JOIN users u ON al.user_id = u.id 
-          WHERE 1=1";
+$where_conditions = ["1=1"];
 $params = [];
 
+if (!empty($search)) {
+    $where_conditions[] = "(al.action LIKE ? OR al.table_name LIKE ? OR al.record_id LIKE ? OR u.name LIKE ?)";
+    $params[] = "%$search%";
+    $params[] = "%$search%";
+    $params[] = "%$search%";
+    $params[] = "%$search%";
+}
+
 if ($user_filter) {
-    $query .= " AND al.user_id = ?";
+    $where_conditions[] = "al.user_id = ?";
     $params[] = $user_filter;
 }
 
 if ($action_filter) {
-    $query .= " AND al.action = ?";
+    $where_conditions[] = "al.action = ?";
     $params[] = $action_filter;
 }
 
 if ($table_filter) {
-    $query .= " AND al.table_name = ?";
+    $where_conditions[] = "al.table_name = ?";
     $params[] = $table_filter;
 }
 
 if ($date_from) {
-    $query .= " AND DATE(al.timestamp) >= ?";
+    $where_conditions[] = "DATE(al.timestamp) >= ?";
     $params[] = $date_from;
 }
 
 if ($date_to) {
-    $query .= " AND DATE(al.timestamp) <= ?";
+    $where_conditions[] = "DATE(al.timestamp) <= ?";
     $params[] = $date_to;
 }
 
-$query .= " ORDER BY al.timestamp DESC LIMIT " . (int)$limit . " OFFSET " . (int)$offset;
+$where_clause = implode(" AND ", $where_conditions);
+
+// Get total count for pagination
+$count_query = "SELECT COUNT(*) as total 
+                FROM audit_logs al 
+                LEFT JOIN users u ON al.user_id = u.id 
+                WHERE $where_clause";
+$count_stmt = $db->prepare($count_query);
+$count_stmt->execute($params);
+$total_records = $count_stmt->fetch()['total'];
+$total_pages = ceil($total_records / $limit);
+
+// Get audit logs with pagination
+$query = "SELECT al.*, u.name as user_name 
+          FROM audit_logs al 
+          LEFT JOIN users u ON al.user_id = u.id 
+          WHERE $where_clause
+          ORDER BY al.timestamp DESC 
+          LIMIT " . (int)$limit . " OFFSET " . (int)$offset;
 
 $stmt = $db->prepare($query);
 $stmt->execute($params);
@@ -140,6 +164,11 @@ $tables = $stmt->fetchAll();
                 </div>
                 <div class="card-body">
                     <form method="GET" class="row g-3">
+                        <div class="col-md-3">
+                            <label for="search" class="form-label">Search</label>
+                            <input type="text" class="form-control form-control-sm" id="search" name="search" 
+                                   placeholder="Search by action, table, record ID, or user..." value="<?php echo htmlspecialchars($search); ?>">
+                        </div>
                         <div class="col-md-2">
                             <label for="user" class="form-label">User</label>
                             <select class="form-select form-select-sm" id="user" name="user">
@@ -205,10 +234,13 @@ $tables = $stmt->fetchAll();
             
             <!-- Audit Logs Table -->
             <div class="card">
-                <div class="card-header">
+                <div class="card-header d-flex justify-content-between align-items-center">
                     <h6 class="mb-0">
-                        <i class="fas fa-list me-2"></i>Audit Logs (<?php echo $total_logs; ?> total)
+                        <i class="fas fa-list me-2"></i>Audit Logs (<?php echo $total_records; ?> total)
                     </h6>
+                    <small class="text-muted">
+                        Showing <?php echo count($audit_logs); ?> of <?php echo $total_records; ?> logs
+                    </small>
                 </div>
                 <div class="card-body">
                     <?php if (empty($audit_logs)): ?>

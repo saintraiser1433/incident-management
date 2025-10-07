@@ -28,6 +28,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         
         if (empty($org_name) || empty($org_type)) {
             $error_message = 'Organization name and type are required.';
+        } elseif (!empty($contact_number) && !preg_match('/^9\d{9}$/', $contact_number)) {
+            $error_message = 'Contact number must be a valid Philippine mobile number (format: 9XXXXXXXXX).';
         } else {
             try {
                 $query = "INSERT INTO organizations (org_name, org_type, contact_number, address) VALUES (?, ?, ?, ?)";
@@ -49,6 +51,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         
         if (empty($org_name) || empty($org_type)) {
             $error_message = 'Organization name and type are required.';
+        } elseif (!empty($contact_number) && !preg_match('/^9\d{9}$/', $contact_number)) {
+            $error_message = 'Contact number must be a valid Philippine mobile number (format: 9XXXXXXXXX).';
         } else {
             try {
                 $query = "UPDATE organizations SET org_name = ?, org_type = ?, contact_number = ?, address = ? WHERE id = ?";
@@ -93,16 +97,50 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 }
 
 // Get all organizations with user and report counts
+// Handle search and filtering
+$search = $_GET['search'] ?? '';
+$type_filter = $_GET['type'] ?? '';
+$page = max(1, (int)($_GET['page'] ?? 1));
+$per_page = 10;
+$offset = ($page - 1) * $per_page;
+
+// Build query with filters
+$where_conditions = [];
+$params = [];
+
+if (!empty($search)) {
+    $where_conditions[] = "(o.org_name LIKE ? OR o.address LIKE ?)";
+    $params[] = "%$search%";
+    $params[] = "%$search%";
+}
+
+if (!empty($type_filter)) {
+    $where_conditions[] = "o.org_type = ?";
+    $params[] = $type_filter;
+}
+
+$where_clause = !empty($where_conditions) ? "WHERE " . implode(" AND ", $where_conditions) : "";
+
+// Get total count for pagination
+$count_query = "SELECT COUNT(*) as total FROM organizations o $where_clause";
+$count_stmt = $db->prepare($count_query);
+$count_stmt->execute($params);
+$total_records = $count_stmt->fetch()['total'];
+$total_pages = ceil($total_records / $per_page);
+
+// Get organizations with pagination
 $query = "SELECT o.*, 
           COUNT(DISTINCT u.id) as user_count,
           COUNT(DISTINCT ir.id) as report_count
           FROM organizations o 
           LEFT JOIN users u ON o.id = u.organization_id 
           LEFT JOIN incident_reports ir ON o.id = ir.organization_id 
+          $where_clause
           GROUP BY o.id 
-          ORDER BY o.org_name";
+          ORDER BY o.org_name
+          LIMIT $per_page OFFSET $offset";
 $stmt = $db->prepare($query);
-$stmt->execute();
+$stmt->execute($params);
 $organizations = $stmt->fetchAll();
 ?>
 
@@ -141,13 +179,57 @@ $organizations = $stmt->fetchAll();
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
             <?php endif; ?>
-
+            
+            <!-- Search and Filter Controls -->
+            <div class="card mb-3">
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-4">
+                            <label for="search" class="form-label">Search</label>
+                            <input type="text" class="form-control" id="search" name="search" 
+                                   placeholder="Search by name or address..." value="<?php echo htmlspecialchars($search); ?>">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="type" class="form-label">Filter by Type</label>
+                            <select class="form-select" id="type" name="type">
+                                <option value="">All Types</option>
+                                <option value="Hospital" <?php echo $type_filter === 'Hospital' ? 'selected' : ''; ?>>Hospital</option>
+                                <option value="Police" <?php echo $type_filter === 'Police' ? 'selected' : ''; ?>>Police</option>
+                                <option value="Fire Department" <?php echo $type_filter === 'Fire Department' ? 'selected' : ''; ?>>Fire Department</option>
+                                <option value="Security" <?php echo $type_filter === 'Security' ? 'selected' : ''; ?>>Security</option>
+                                <option value="Emergency Services" <?php echo $type_filter === 'Emergency Services' ? 'selected' : ''; ?>>Emergency Services</option>
+                                <option value="Other" <?php echo $type_filter === 'Other' ? 'selected' : ''; ?>>Other</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search me-1"></i>Search
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="d-grid">
+                                <a href="index.php" class="btn btn-outline-secondary">
+                                    <i class="fas fa-times me-1"></i>Clear
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
             <!-- Organizations Table -->
             <div class="card">
-                <div class="card-header">
+                <div class="card-header d-flex justify-content-between align-items-center">
                     <h6 class="mb-0">
-                        <i class="fas fa-list me-2"></i>Organizations (<?php echo count($organizations); ?>)
+                        <i class="fas fa-list me-2"></i>Organizations (<?php echo $total_records; ?>)
                     </h6>
+                    <small class="text-muted">
+                        Showing <?php echo count($organizations); ?> of <?php echo $total_records; ?> organizations
+                    </small>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -203,6 +285,73 @@ $organizations = $stmt->fetchAll();
                             </tbody>
                         </table>
                     </div>
+                    
+                    <!-- Pagination -->
+                    <?php if ($total_pages > 1): ?>
+                    <div class="card-footer">
+                        <nav aria-label="Organizations pagination">
+                            <ul class="pagination justify-content-center mb-0">
+                                <!-- Previous Page -->
+                                <?php if ($page > 1): ?>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page - 1])); ?>">
+                                            <i class="fas fa-chevron-left"></i> Previous
+                                        </a>
+                                    </li>
+                                <?php endif; ?>
+                                
+                                <!-- Page Numbers -->
+                                <?php
+                                $start_page = max(1, $page - 2);
+                                $end_page = min($total_pages, $page + 2);
+                                
+                                if ($start_page > 1): ?>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => 1])); ?>">1</a>
+                                    </li>
+                                    <?php if ($start_page > 2): ?>
+                                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                                    <?php endif; ?>
+                                <?php endif; ?>
+                                
+                                <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
+                                    <li class="page-item <?php echo $i == $page ? 'active' : ''; ?>">
+                                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $i])); ?>">
+                                            <?php echo $i; ?>
+                                        </a>
+                                    </li>
+                                <?php endfor; ?>
+                                
+                                <?php if ($end_page < $total_pages): ?>
+                                    <?php if ($end_page < $total_pages - 1): ?>
+                                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                                    <?php endif; ?>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $total_pages])); ?>">
+                                            <?php echo $total_pages; ?>
+                                        </a>
+                                    </li>
+                                <?php endif; ?>
+                                
+                                <!-- Next Page -->
+                                <?php if ($page < $total_pages): ?>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page + 1])); ?>">
+                                            Next <i class="fas fa-chevron-right"></i>
+                                        </a>
+                                    </li>
+                                <?php endif; ?>
+                            </ul>
+                        </nav>
+                        
+                        <div class="text-center text-muted">
+                            <small>
+                                Page <?php echo $page; ?> of <?php echo $total_pages; ?> 
+                                (<?php echo $total_records; ?> total organizations)
+                            </small>
+                        </div>
+                    </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </main>
@@ -238,7 +387,10 @@ $organizations = $stmt->fetchAll();
                     </div>
                     <div class="mb-3">
                         <label for="contact_number" class="form-label">Contact Number</label>
-                        <input type="text" class="form-control" id="contact_number" name="contact_number">
+                        <input type="text" class="form-control" id="contact_number" name="contact_number" 
+                               pattern="9[0-9]{9}" title="Enter exactly 10 digits starting with 9 (e.g., 9123456789)"
+                               maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10)">
+                        <div class="form-text">Enter a Philippine mobile number (format: 9XXXXXXXXX)</div>
                     </div>
                     <div class="mb-3">
                         <label for="address" class="form-label">Address</label>
@@ -284,7 +436,10 @@ $organizations = $stmt->fetchAll();
                     </div>
                     <div class="mb-3">
                         <label for="edit_contact_number" class="form-label">Contact Number</label>
-                        <input type="text" class="form-control" id="edit_contact_number" name="contact_number">
+                        <input type="text" class="form-control" id="edit_contact_number" name="contact_number" 
+                               pattern="9[0-9]{9}" title="Enter exactly 10 digits starting with 9 (e.g., 9123456789)"
+                               maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10)">
+                        <div class="form-text">Enter a Philippine mobile number (format: 9XXXXXXXXX)</div>
                     </div>
                     <div class="mb-3">
                         <label for="edit_address" class="form-label">Address</label>

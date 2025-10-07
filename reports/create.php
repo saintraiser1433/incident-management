@@ -29,6 +29,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         empty($location) || empty($severity_level) || empty($category) || empty($organization_id)) {
         $error_message = 'Please fill in all required fields.';
     } else {
+        // Validate witness contact numbers
+        foreach ($witness_contacts as $contact) {
+            if (!empty($contact) && !preg_match('/^9\d{9}$/', $contact)) {
+                $error_message = 'Witness contact numbers must be valid Philippine mobile numbers (format: 9XXXXXXXXX).';
+                break;
+            }
+        }
+    }
+    
+    if (empty($error_message)) {
         $database = new Database();
         $db = $database->getConnection();
         
@@ -319,7 +329,9 @@ include '../views/header.php';
                                         <input type="text" class="form-control" name="witness_name[]" placeholder="Witness Name">
                                     </div>
                                     <div class="col-md-6">
-                                        <input type="text" class="form-control" name="witness_contact[]" placeholder="Contact Information">
+                                        <input type="text" class="form-control" name="witness_contact[]" placeholder="9XXXXXXXXX (10 digits)" 
+                                               pattern="9[0-9]{9}" title="Enter exactly 10 digits starting with 9 (e.g., 9123456789)"
+                                               maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10)">
                                     </div>
                                 </div>
                             </div>
@@ -353,7 +365,9 @@ function addWitness() {
             <input type="text" class="form-control" name="witness_name[]" placeholder="Witness Name">
         </div>
         <div class="col-md-6">
-            <input type="text" class="form-control" name="witness_contact[]" placeholder="Contact Information">
+            <input type="text" class="form-control" name="witness_contact[]" placeholder="9XXXXXXXXX (10 digits)" 
+                   pattern="9[0-9]{9}" title="Enter exactly 10 digits starting with 9 (e.g., 9123456789)"
+                   maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10)">
         </div>
     `;
     container.appendChild(newWitness);
