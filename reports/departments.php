@@ -379,19 +379,87 @@ function toggleView(view) {
 }
 
 function openReportForm(orgId, orgName) {
-    document.getElementById('selectedOrgId').value = orgId;
-    document.getElementById('selectedDeptName').textContent = orgName;
-    
-    const now = new Date();
-    const date = now.toISOString().split('T')[0];
-    const time = now.toTimeString().slice(0, 5);
-    document.getElementById('incident_date').value = date;
-    document.getElementById('incident_time').value = time;
-    
-    const modalEl = document.getElementById('reportModal');
-    let modal = bootstrap.Modal.getInstance(modalEl);
-    if (!modal) { modal = new bootstrap.Modal(modalEl); }
-    modal.show();
+    try {
+        // Set form data
+        document.getElementById('selectedOrgId').value = orgId;
+        document.getElementById('selectedDeptName').textContent = orgName;
+        
+        // Set current date and time
+        const now = new Date();
+        const date = now.toISOString().split('T')[0];
+        const time = now.toTimeString().slice(0, 5);
+        document.getElementById('incident_date').value = date;
+        document.getElementById('incident_time').value = time;
+        
+        // Clear form fields
+        document.getElementById('title').value = '';
+        document.getElementById('description').value = '';
+        document.getElementById('category').value = '';
+        document.getElementById('severity_level').value = '';
+        document.getElementById('location').value = '';
+        document.getElementById('photos').value = '';
+        
+        // Clear witnesses
+        const witnessesContainer = document.getElementById('witnessesContainer');
+        witnessesContainer.innerHTML = `
+            <div class="witness-entry row mb-2">
+                <div class="col-md-6">
+                    <input type="text" class="form-control" name="witness_name[]" placeholder="Witness Name">
+                </div>
+                <div class="col-md-6">
+                    <input type="text" class="form-control" name="witness_contact[]" placeholder="Contact Information">
+                </div>
+            </div>
+        `;
+        
+        // Get modal element and ensure it exists
+        const modalEl = document.getElementById('reportModal');
+        if (!modalEl) {
+            console.error('Modal element not found');
+            return;
+        }
+        
+        // Dispose any existing modal instance
+        const existingModal = bootstrap.Modal.getInstance(modalEl);
+        if (existingModal) {
+            existingModal.dispose();
+        }
+        
+        // Create and show new modal instance
+        const modal = new bootstrap.Modal(modalEl, {
+            backdrop: 'static',
+            keyboard: false
+        });
+        
+        // Add event listeners for modal events
+        modalEl.addEventListener('shown.bs.modal', function() {
+            console.log('Modal shown successfully');
+        });
+        
+        modalEl.addEventListener('hidden.bs.modal', function() {
+            console.log('Modal hidden');
+        });
+        
+        // Show modal with fallback
+        try {
+            modal.show();
+        } catch (modalError) {
+            console.error('Modal show error:', modalError);
+            // Fallback: try to show modal after a short delay
+            setTimeout(() => {
+                try {
+                    modal.show();
+                } catch (retryError) {
+                    console.error('Modal retry failed:', retryError);
+                    alert('Unable to open report form. Please refresh the page and try again.');
+                }
+            }, 100);
+        }
+        
+    } catch (error) {
+        console.error('Error opening report form:', error);
+        alert('Error opening report form. Please try again.');
+    }
 }
 
 function viewDepartment(orgId) {
@@ -431,6 +499,12 @@ async function handleReportSubmit(e) {
     }
     // Let normal POST proceed; after redirect back with created=1 we show a toast
 }
+
+// Ensure DOM is ready and Bootstrap is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize any required components
+    console.log('Departments page loaded successfully');
+});
 </script>
 
 <?php if (isset($_GET['created']) && $_GET['created'] == '1'): ?>
