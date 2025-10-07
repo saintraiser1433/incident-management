@@ -372,12 +372,12 @@ function toggleOrganization() {
     const orgField = document.getElementById('organization_field');
     const orgSelect = document.getElementById('organization_id');
     
-    if (role === 'Admin' || role === 'Responder') {
-        orgField.style.display = 'none';
-        orgSelect.required = false;
-    } else {
+    if (role === 'Organization Account') {
         orgField.style.display = 'block';
         orgSelect.required = true;
+    } else {
+        orgField.style.display = 'none';
+        orgSelect.required = false;
     }
 }
 
@@ -386,12 +386,12 @@ function toggleEditOrganization() {
     const orgField = document.getElementById('edit_organization_field');
     const orgSelect = document.getElementById('edit_organization_id');
     
-    if (role === 'Admin' || role === 'Responder') {
-        orgField.style.display = 'none';
-        orgSelect.required = false;
-    } else {
+    if (role === 'Organization Account') {
         orgField.style.display = 'block';
         orgSelect.required = true;
+    } else {
+        orgField.style.display = 'none';
+        orgSelect.required = false;
     }
 }
 
@@ -411,6 +411,11 @@ function deleteUser(id, name) {
     document.getElementById('delete_name').textContent = name;
     new bootstrap.Modal(document.getElementById('deleteModal')).show();
 }
+
+// Initialize organization field visibility on page load
+document.addEventListener('DOMContentLoaded', function() {
+    toggleOrganization();
+});
 </script>
 
 <?php include '../views/footer.php'; ?>
