@@ -87,6 +87,7 @@ try {
         error_log("Approval SMS Debug - Reporter Name: " . ($details['reporter_name'] ?? 'NULL'));
         error_log("Approval SMS Debug - Reporter Contact: " . ($details['reporter_contact'] ?? 'NULL'));
         error_log("Approval SMS Debug - Report Title: " . ($details['title'] ?? 'NULL'));
+        error_log("Approval SMS Debug - Full Details Array: " . print_r($details, true));
         
         // Include SMS functionality
         require_once '../sms.php';

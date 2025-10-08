@@ -122,6 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     error_log("Status Change SMS Debug - Reporter Name: " . ($details['reporter_name'] ?? 'NULL'));
                     error_log("Status Change SMS Debug - Reporter Contact: " . ($details['reporter_contact'] ?? 'NULL'));
                     error_log("Status Change SMS Debug - New Status: {$status}");
+                    error_log("Status Change SMS Debug - Full Details Array: " . print_r($details, true));
                     
                     // Include SMS functionality
                     require_once '../sms.php';

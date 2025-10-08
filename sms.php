@@ -96,6 +96,7 @@ if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] == 'POST' &&
         error_log("SMS Test Error: " . $result['error']);
         http_response_code(400);
     }
-} else {
+} else if (basename($_SERVER['PHP_SELF']) === 'sms.php') {
+    // Only show this message if sms.php is being called directly
     echo 'Please provide message and number parameters';
 }
