@@ -32,8 +32,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $error_message = 'Name, email, password, and role are required.';
         } elseif ($role != 'Admin' && $role != 'Responder' && empty($organization_id)) {
             $error_message = 'Organization is required for Organization Account users.';
-        } elseif ($role === 'Responder' && !empty($contact_number) && !preg_match('/^9\d{9}$/', $contact_number)) {
-            $error_message = 'Contact number must be a valid Philippine mobile number (format: 9XXXXXXXXX).';
+        } elseif ($role === 'Responder' && !empty($contact_number) && !preg_match('/^09\d{9}$/', $contact_number)) {
+            $error_message = 'Contact number must be a valid Philippine mobile number (format: 09XXXXXXXXX).';
         } else {
             try {
                 // Check if email already exists
@@ -68,8 +68,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $error_message = 'Name, email, and role are required.';
         } elseif ($role != 'Admin' && $role != 'Responder' && empty($organization_id)) {
             $error_message = 'Organization is required for Organization Account users.';
-        } elseif ($role === 'Responder' && !empty($contact_number) && !preg_match('/^9\d{9}$/', $contact_number)) {
-            $error_message = 'Contact number must be a valid Philippine mobile number (format: 9XXXXXXXXX).';
+        } elseif ($role === 'Responder' && !empty($contact_number) && !preg_match('/^09\d{9}$/', $contact_number)) {
+            $error_message = 'Contact number must be a valid Philippine mobile number (format: 09XXXXXXXXX).';
         } else {
             try {
                 // Check if email already exists (excluding current user)
@@ -440,9 +440,9 @@ $organizations = $stmt->fetchAll();
                     <div class="mb-3" id="contact_field">
                         <label for="contact_number" class="form-label">Contact Number</label>
                         <input type="text" class="form-control" id="contact_number" name="contact_number" 
-                               placeholder="9XXXXXXXXX (10 digits)" pattern="9[0-9]{9}" 
-                               title="Enter exactly 10 digits starting with 9 (e.g., 9123456789)"
-                               maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10)">
+                               placeholder="09XXXXXXXXX (11 digits)" pattern="09[0-9]{9}" 
+                               title="Enter exactly 11 digits starting with 09 (e.g., 09123456789)"
+                               maxlength="11" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 11)">
                         <div class="form-text">Enter a Philippine mobile number for SMS notifications (optional for non-Responder roles)</div>
                     </div>
                 </div>
@@ -500,9 +500,9 @@ $organizations = $stmt->fetchAll();
                     <div class="mb-3" id="edit_contact_field">
                         <label for="edit_contact_number" class="form-label">Contact Number</label>
                         <input type="text" class="form-control" id="edit_contact_number" name="contact_number" 
-                               placeholder="9XXXXXXXXX (10 digits)" pattern="9[0-9]{9}" 
-                               title="Enter exactly 10 digits starting with 9 (e.g., 9123456789)"
-                               maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10)">
+                               placeholder="09XXXXXXXXX (11 digits)" pattern="09[0-9]{9}" 
+                               title="Enter exactly 11 digits starting with 09 (e.g., 09123456789)"
+                               maxlength="11" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 11)">
                         <div class="form-text">Enter a Philippine mobile number for SMS notifications (optional for non-Responder roles)</div>
                     </div>
                 </div>

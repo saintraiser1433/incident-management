@@ -161,11 +161,11 @@ try {
                             <form id="testSMSForm">
                                 <div class="mb-3">
                                     <label for="test_number" class="form-label">Test Phone Number *</label>
-                                    <input type="text" class="form-control" id="test_number" name="test_number" 
-                                           placeholder="9XXXXXXXXX (10 digits)" pattern="9[0-9]{9}" 
-                                           title="Enter exactly 10 digits starting with 9 (e.g., 9123456789)"
-                                           maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10)" required>
-                                    <div class="form-text">Enter a Philippine mobile number (format: 9XXXXXXXXX)</div>
+                        <input type="text" class="form-control" id="test_number" name="test_number"
+                               placeholder="09XXXXXXXXX (11 digits)" pattern="09[0-9]{9}"
+                               title="Enter exactly 11 digits starting with 09 (e.g., 09123456789)"
+                               maxlength="11" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 11)" required>
+                                    <div class="form-text">Enter a Philippine mobile number (format: 09XXXXXXXXX)</div>
                                 </div>
                                 <div class="mb-3">
                                     <label for="test_message" class="form-label">Test Message *</label>

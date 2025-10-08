@@ -28,8 +28,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         
         if (empty($org_name) || empty($org_type)) {
             $error_message = 'Organization name and type are required.';
-        } elseif (!empty($contact_number) && !preg_match('/^9\d{9}$/', $contact_number)) {
-            $error_message = 'Contact number must be a valid Philippine mobile number (format: 9XXXXXXXXX).';
+    } elseif (!empty($contact_number) && !preg_match('/^09\d{9}$/', $contact_number)) {
+        $error_message = 'Contact number must be a valid Philippine mobile number (format: 09XXXXXXXXX).';
         } else {
             try {
                 $query = "INSERT INTO organizations (org_name, org_type, contact_number, address) VALUES (?, ?, ?, ?)";
@@ -51,8 +51,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         
         if (empty($org_name) || empty($org_type)) {
             $error_message = 'Organization name and type are required.';
-        } elseif (!empty($contact_number) && !preg_match('/^9\d{9}$/', $contact_number)) {
-            $error_message = 'Contact number must be a valid Philippine mobile number (format: 9XXXXXXXXX).';
+    } elseif (!empty($contact_number) && !preg_match('/^09\d{9}$/', $contact_number)) {
+        $error_message = 'Contact number must be a valid Philippine mobile number (format: 09XXXXXXXXX).';
         } else {
             try {
                 $query = "UPDATE organizations SET org_name = ?, org_type = ?, contact_number = ?, address = ? WHERE id = ?";
@@ -387,10 +387,10 @@ $organizations = $stmt->fetchAll();
                     </div>
                     <div class="mb-3">
                         <label for="contact_number" class="form-label">Contact Number</label>
-                        <input type="text" class="form-control" id="contact_number" name="contact_number" 
-                               pattern="9[0-9]{9}" title="Enter exactly 10 digits starting with 9 (e.g., 9123456789)"
-                               maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10)">
-                        <div class="form-text">Enter a Philippine mobile number (format: 9XXXXXXXXX)</div>
+                        <input type="text" class="form-control" id="contact_number" name="contact_number"
+                               pattern="09[0-9]{9}" title="Enter exactly 11 digits starting with 09 (e.g., 09123456789)"
+                               maxlength="11" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 11)">
+                        <div class="form-text">Enter a Philippine mobile number (format: 09XXXXXXXXX)</div>
                     </div>
                     <div class="mb-3">
                         <label for="address" class="form-label">Address</label>
@@ -437,9 +437,9 @@ $organizations = $stmt->fetchAll();
                     <div class="mb-3">
                         <label for="edit_contact_number" class="form-label">Contact Number</label>
                         <input type="text" class="form-control" id="edit_contact_number" name="contact_number" 
-                               pattern="9[0-9]{9}" title="Enter exactly 10 digits starting with 9 (e.g., 9123456789)"
-                               maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10)">
-                        <div class="form-text">Enter a Philippine mobile number (format: 9XXXXXXXXX)</div>
+                               pattern="09[0-9]{9}" title="Enter exactly 11 digits starting with 09 (e.g., 09123456789)"
+                               maxlength="11" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 11)">
+                        <div class="form-text">Enter a Philippine mobile number (format: 09XXXXXXXXX)</div>
                     </div>
                     <div class="mb-3">
                         <label for="edit_address" class="form-label">Address</label>

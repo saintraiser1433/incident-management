@@ -13,6 +13,9 @@ use AndroidSmsGateway\Domain\Message;
 
 function sendSMS($number, $message) {
     try {
+        // Debug: Log the incoming parameters
+        error_log("SMS Service Called - Number: {$number}, Message: " . substr($message, 0, 50) . "...");
+        
         $database = new Database();
         $db = $database->getConnection();
         
@@ -34,13 +37,28 @@ function sendSMS($number, $message) {
             throw new Exception('SMS credentials not configured');
         }
         
-        // Validate the number
-        $number = "+63" . $number;
+        // Validate and format the number
+        error_log("SMS Service - Original number: {$number}");
         
-        // Check if the number starts with +639 and has correct length (Philippines mobile numbers are 10 digits after +63)
-        if (!preg_match('/^\+639\d{9}$/', $number)) {
-            throw new Exception('Philippine mobile number must start with 9 (format: 9XXXXXXXXX) and be 10 digits long');
+        // If number starts with 09, convert to +63 format
+        if (preg_match('/^09\d{9}$/', $number)) {
+            $number = "+63" . substr($number, 1); // Remove 0, add +63
+            error_log("SMS Service - Converted 09 format to: {$number}");
+        } elseif (preg_match('/^9\d{9}$/', $number)) {
+            $number = "+63" . $number; // Add +63 prefix
+            error_log("SMS Service - Converted 9 format to: {$number}");
+        } else {
+            error_log("SMS Service - Invalid number format: {$number}");
+            throw new Exception('Philippine mobile number must start with 09 (format: 09XXXXXXXXX) and be 11 digits long');
         }
+        
+        // Final validation for +63 format
+        if (!preg_match('/^\+639\d{9}$/', $number)) {
+            error_log("SMS Service - Final validation failed for: {$number}");
+            throw new Exception('Invalid Philippine mobile number format');
+        }
+        
+        error_log("SMS Service - Final formatted number: {$number}");
         
         $client = new Client($sms_settings['username'], $sms_settings['password']);
         $messageObj = new Message($message, [$number]);
@@ -61,7 +79,7 @@ function sendSMS($number, $message) {
 }
 
 // Handle direct API calls (for testing)
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['message']) && isset($_POST['number'])) {
+if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['message']) && isset($_POST['number'])) {
     $number = $_POST['number'];
     $message = $_POST['message'];
     

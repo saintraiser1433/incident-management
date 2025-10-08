@@ -314,9 +314,9 @@ foreach ($departments as &$dept) {
                                         <input type="text" class="form-control" name="witness_name[]" placeholder="Witness Name">
                                     </div>
                                     <div class="col-md-6">
-                                        <input type="text" class="form-control" name="witness_contact[]" placeholder="9XXXXXXXXX (10 digits)" 
-                                               pattern="9[0-9]{9}" title="Enter exactly 10 digits starting with 9 (e.g., 9123456789)"
-                                               maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10)">
+                            <input type="text" class="form-control" name="witness_contact[]" placeholder="09XXXXXXXXX (11 digits)"
+                                   pattern="09[0-9]{9}" title="Enter exactly 11 digits starting with 09 (e.g., 09123456789)"
+                                   maxlength="11" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 11)">
                                     </div>
                                 </div>
                             </div>
@@ -431,9 +431,9 @@ function openReportForm(orgId, orgName) {
                         <input type="text" class="form-control" name="witness_name[]" placeholder="Witness Name">
                     </div>
                     <div class="col-md-6">
-                        <input type="text" class="form-control" name="witness_contact[]" placeholder="9XXXXXXXXX (10 digits)" 
-                               pattern="9[0-9]{9}" title="Enter exactly 10 digits starting with 9 (e.g., 9123456789)"
-                               maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10)">
+                            <input type="text" class="form-control" name="witness_contact[]" placeholder="09XXXXXXXXX (11 digits)"
+                                   pattern="09[0-9]{9}" title="Enter exactly 11 digits starting with 09 (e.g., 09123456789)"
+                                   maxlength="11" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 11)">
                     </div>
                 </div>
             `;
@@ -489,9 +489,9 @@ function addWitness() {
         </div>
         <div class="col-md-6">
             <div class="input-group">
-                <input type="text" class="form-control" name="witness_contact[]" placeholder="9XXXXXXXXX (10 digits)" 
-                       pattern="9[0-9]{9}" title="Enter exactly 10 digits starting with 9 (e.g., 9123456789)"
-                       maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10)">
+                            <input type="text" class="form-control" name="witness_contact[]" placeholder="09XXXXXXXXX (11 digits)"
+                                   pattern="09[0-9]{9}" title="Enter exactly 11 digits starting with 09 (e.g., 09123456789)"
+                                   maxlength="11" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 11)">
                 <button type="button" class="btn ui-btn-ghost" onclick="removeWitness(this)">
                     <i class="fas fa-times"></i>
                 </button>
