@@ -14,7 +14,10 @@ use AndroidSmsGateway\Domain\Message;
 function sendSMS($number, $message) {
     try {
         // Debug: Log the incoming parameters
-        error_log("SMS Service Called - Number: {$number}, Message: " . substr($message, 0, 50) . "...");
+        error_log("=== SMS SERVICE CALLED ===");
+        error_log("SMS Service - Incoming Number: {$number}");
+        error_log("SMS Service - Message Preview: " . substr($message, 0, 50) . "...");
+        error_log("SMS Service - Full Message: {$message}");
         
         $database = new Database();
         $db = $database->getConnection();
@@ -64,6 +67,12 @@ function sendSMS($number, $message) {
         $messageObj = new Message($message, [$number]);
 
         $messageState = $client->Send($messageObj);
+        
+        error_log("=== SMS SENT SUCCESSFULLY ===");
+        error_log("SMS Service - Final Number Sent To: {$number}");
+        error_log("SMS Service - Message ID: " . $messageState->ID());
+        error_log("=== SMS SERVICE COMPLETE ===");
+        
         return [
             'success' => true,
             'message_id' => $messageState->ID(),
@@ -78,8 +87,8 @@ function sendSMS($number, $message) {
     }
 }
 
-// Handle direct API calls (for testing)
-if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['message']) && isset($_POST['number'])) {
+// Handle direct API calls (for testing) - Only if accessed via POST with proper parameters
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['message']) && isset($_POST['number'])) {
     $number = $_POST['number'];
     $message = $_POST['message'];
     
@@ -96,7 +105,5 @@ if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] == 'POST' &&
         error_log("SMS Test Error: " . $result['error']);
         http_response_code(400);
     }
-} else if (basename($_SERVER['PHP_SELF']) === 'sms.php') {
-    // Only show this message if sms.php is being called directly
-    echo 'Please provide message and number parameters';
 }
+// Removed the else clause that was causing the error message to appear

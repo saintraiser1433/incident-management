@@ -128,24 +128,75 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             
             // Send SMS notification to organization (outside transaction)
             try {
-                // Get organization contact number
-                $orgQuery = "SELECT org_name, contact_number FROM organizations WHERE id = ?";
-                $orgStmt = $db->prepare($orgQuery);
-                $orgStmt->execute([$organization_id]);
-                $organization = $orgStmt->fetch();
+                // Get current user's role to determine if SMS should be sent
+                $userQuery = "SELECT role FROM users WHERE id = ?";
+                $userStmt = $db->prepare($userQuery);
+                $userStmt->execute([$_SESSION['user_id']]);
+                $currentUser = $userStmt->fetch();
                 
-                if ($organization && !empty($organization['contact_number'])) {
+                error_log("=== REPORT CREATION SMS DEBUG ===");
+                error_log("Report Creation - Report ID: {$report_id}");
+                error_log("Report Creation - Current User Role: " . ($currentUser['role'] ?? 'NULL'));
+                error_log("Report Creation - Report Title: {$title}");
+                
+                // Only send SMS if the report is created by a RESPONDER
+                if ($currentUser && $currentUser['role'] === 'Responder') {
                     // Include SMS functionality
                     require_once '../sms.php';
                     
-                    $smsMessage = "MDRRMO-GLAN: New incident report #{$report_id} - {$title} ({$severity_level} severity) has been submitted to {$organization['org_name']}. Please check the system for details.";
+                    // 1. Send SMS to ORGANIZATION (department)
+                    $orgQuery = "SELECT org_name, contact_number FROM organizations WHERE id = ?";
+                    $orgStmt = $db->prepare($orgQuery);
+                    $orgStmt->execute([$organization_id]);
+                    $organization = $orgStmt->fetch();
                     
-                    $smsResult = sendSMS($organization['contact_number'], $smsMessage);
-                    
-                    if (!$smsResult['success']) {
-                        error_log("SMS notification failed for report #{$report_id}: " . $smsResult['error']);
+                    if ($organization && !empty($organization['contact_number'])) {
+                        $orgSmsMessage = "MDRRMO-GLAN: New incident report #{$report_id} - {$title} ({$severity_level} severity) has been submitted to {$organization['org_name']}. Please check the system for details.";
+                        
+                        error_log("=== SENDING SMS TO ORGANIZATION ===");
+                        error_log("SMS Recipient: ORGANIZATION - {$organization['contact_number']}");
+                        error_log("SMS Message: {$orgSmsMessage}");
+                        
+                        $orgSmsResult = sendSMS($organization['contact_number'], $orgSmsMessage);
+                        
+                        if (!$orgSmsResult['success']) {
+                            error_log("SMS notification to organization failed for report #{$report_id}: " . $orgSmsResult['error']);
+                        } else {
+                            error_log("SMS notification sent successfully to ORGANIZATION for report #{$report_id}");
+                        }
+                    } else {
+                        error_log("No contact number found for organization ID: {$organization_id}");
                     }
+                    
+                    // 2. Send SMS to RESPONDER (confirmation)
+                    $responderQuery = "SELECT name, contact_number FROM users WHERE id = ?";
+                    $responderStmt = $db->prepare($responderQuery);
+                    $responderStmt->execute([$_SESSION['user_id']]);
+                    $responder = $responderStmt->fetch();
+                    
+                    if ($responder && !empty($responder['contact_number'])) {
+                        $responderSmsMessage = "MDRRMO-GLAN: Your incident report #{$report_id} '{$title}' has been successfully submitted to {$organization['org_name']}. You will be notified of any updates.";
+                        
+                        error_log("=== SENDING SMS TO RESPONDER ===");
+                        error_log("SMS Recipient: RESPONDER - {$responder['contact_number']}");
+                        error_log("SMS Message: {$responderSmsMessage}");
+                        
+                        $responderSmsResult = sendSMS($responder['contact_number'], $responderSmsMessage);
+                        
+                        if (!$responderSmsResult['success']) {
+                            error_log("SMS notification to responder failed for report #{$report_id}: " . $responderSmsResult['error']);
+                        } else {
+                            error_log("SMS notification sent successfully to RESPONDER for report #{$report_id}");
+                        }
+                    } else {
+                        error_log("No contact number found for responder ID: {$_SESSION['user_id']}");
+                    }
+                } else {
+                    error_log("=== NO SMS SENT ===");
+                    error_log("Reason: Report created by " . ($currentUser['role'] ?? 'Unknown') . " (not Responder)");
+                    error_log("Only Responders trigger SMS notifications");
                 }
+                error_log("=== REPORT CREATION SMS DEBUG END ===");
             } catch (Exception $smsError) {
                 // Don't fail the report creation if SMS fails
                 error_log("SMS notification error for report #{$report_id}: " . $smsError->getMessage());

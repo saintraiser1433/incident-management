@@ -118,48 +118,38 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $details = $detailsStmt->fetch();
                     
                     // Debug: Log the details retrieved
+                    error_log("=== STATUS CHANGE SMS DEBUG START ===");
                     error_log("Status Change SMS Debug - Report ID: {$report_id}");
                     error_log("Status Change SMS Debug - Reporter Name: " . ($details['reporter_name'] ?? 'NULL'));
                     error_log("Status Change SMS Debug - Reporter Contact: " . ($details['reporter_contact'] ?? 'NULL'));
                     error_log("Status Change SMS Debug - New Status: {$status}");
-                    error_log("Status Change SMS Debug - Full Details Array: " . print_r($details, true));
                     
                     // Include SMS functionality
                     require_once '../sms.php';
                     
-                    // Send SMS ONLY to responder (reporter) if status changed
+                    // CRITICAL: Send SMS ONLY to responder (reporter), NEVER to organization
                     if ($details && !empty($details['reporter_contact'])) {
                         $smsMessage = "MDRRMO-GLAN: Your incident report #{$report_id} status has been updated to '{$status}' by {$_SESSION['user_name']}. Please check the system for details.";
-                        error_log("Sending SMS to responder: {$details['reporter_contact']} - Message: {$smsMessage}");
                         
-                        // Double-check: Make sure we're sending to the responder, not the organization
-                        error_log("CONFIRMATION: Sending SMS to RESPONDER contact number: {$details['reporter_contact']}");
+                        error_log("=== SENDING SMS TO RESPONDER ONLY ===");
+                        error_log("SMS Recipient: RESPONDER - {$details['reporter_contact']}");
+                        error_log("SMS Message: {$smsMessage}");
+                        error_log("CONFIRMATION: This SMS is going to RESPONDER, NOT to organization");
                         
                         $smsResult = sendSMS($details['reporter_contact'], $smsMessage);
                         
                         if (!$smsResult['success']) {
                             error_log("SMS notification failed for responder report #{$report_id} status update: " . $smsResult['error']);
                         } else {
-                            error_log("SMS notification sent successfully to responder for report #{$report_id} status update");
+                            error_log("SMS notification sent successfully to RESPONDER for report #{$report_id} status update");
                         }
                     } else {
-                        error_log("❌ CRITICAL: No contact number found for responder of report #{$report_id} - Reporter: " . ($details['reporter_name'] ?? 'Unknown'));
-                        error_log("❌ This is why SMS is not being sent to responder!");
+                        error_log("=== NO SMS SENT - RESPONDER HAS NO CONTACT NUMBER ===");
+                        error_log("No contact number found for responder of report #{$report_id} - Reporter: " . ($details['reporter_name'] ?? 'Unknown'));
                         error_log("DEBUG: Details array: " . print_r($details, true));
-                        
-                        // TEMPORARY FIX: Send SMS to a default responder number for testing
-                        // REMOVE THIS AFTER YOU ADD REAL CONTACT NUMBERS TO RESPONDERS
-                        $defaultResponderNumber = "09123456789"; // CHANGE THIS TO A REAL NUMBER FOR TESTING
-                        $smsMessage = "MDRRMO-GLAN: Your incident report #{$report_id} status has been updated to '{$status}' by {$_SESSION['user_name']}. Please check the system for details.";
-                        error_log("⚠️ TEMPORARY: Sending SMS to default responder number: {$defaultResponderNumber}");
-                        
-                        $smsResult = sendSMS($defaultResponderNumber, $smsMessage);
-                        if ($smsResult['success']) {
-                            error_log("✅ TEMPORARY SMS sent successfully to default number");
-                        } else {
-                            error_log("❌ TEMPORARY SMS failed: " . $smsResult['error']);
-                        }
+                        error_log("IMPORTANT: No SMS will be sent to organization during status change");
                     }
+                    error_log("=== STATUS CHANGE SMS DEBUG END ===");
                     
                 } catch (Exception $smsError) {
                     // Don't fail the update if SMS fails
