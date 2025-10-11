@@ -10,7 +10,7 @@ A comprehensive incident reporting system built with vanilla PHP and MySQL, desi
 - **Role-based access control**:
   - **Admin**: Full system access, manage all organizations and users
   - **Organization Account**: Manage assigned reports for their organization
-  - **Responder**: Submit new incident reports
+  - **Guest Users**: Submit incident reports without requiring login
 
 ### 📊 Incident Management
 
@@ -103,10 +103,10 @@ A comprehensive incident reporting system built with vanilla PHP and MySQL, desi
 - **Email**: sarah.johnson@cityhospital.com
 - **Password**: org123
 
-### Responder Account
+### Guest Access
 
-- **Email**: john.smith@email.com
-- **Password**: resp123
+- **No login required** for submitting incident reports
+- Access the departments page directly to submit reports
 
 ## Project Structure
 
@@ -121,7 +121,7 @@ incident-management/
 ├── dashboard/
 │   ├── admin.php           # Admin dashboard
 │   ├── organization.php    # Organization dashboard
-│   ├── responder.php       # Responder dashboard
+│   ├── responder.php       # Departments dashboard (guest access)
 │   ├── analytics.php       # Analytics dashboard
 │   └── audit.php           # Audit logs
 ├── reports/
@@ -163,7 +163,7 @@ incident-management/
 
 ### Incident Report Workflow
 
-1. **Responder** creates a new incident report
+1. **Guest user or logged-in user** creates a new incident report
 2. Report is assigned to an **Organization** (Hospital, Police, etc.)
 3. **Organization users** can update status and add progress updates
 4. **Admin** can view and manage all reports across organizations

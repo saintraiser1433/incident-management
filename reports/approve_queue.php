@@ -73,10 +73,9 @@ try {
     // Send SMS notification for approval (ONLY to responders, NOT to departments)
     try {
         // Get responder details for SMS notification
-        $detailsQuery = "SELECT u.name as reporter_name, u.email as reporter_email, u.contact_number as reporter_contact,
+        $detailsQuery = "SELECT ir.reported_by as reporter_name, 'N/A' as reporter_email, 'N/A' as reporter_contact,
                                ir.title, ir.severity_level, ir.organization_id, o.org_name, o.contact_number as org_contact
                         FROM incident_reports ir 
-                        LEFT JOIN users u ON ir.reported_by = u.id 
                         LEFT JOIN organizations o ON ir.organization_id = o.id
                         WHERE ir.id = ?";
         $detailsStmt = $db->prepare($detailsQuery);

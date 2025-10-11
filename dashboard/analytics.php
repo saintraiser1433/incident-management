@@ -23,9 +23,8 @@ if ($_SESSION['user_role'] == 'Admin') {
     $org_filter = 'WHERE ir.organization_id = ?';
     $params = [$_SESSION['organization_id']];
 } else {
-    // Responder sees only their data
-    $org_filter = 'WHERE ir.reported_by = ?';
-    $params = [$_SESSION['user_id']];
+    // Guest users see no data (redirect to departments)
+    redirect('dashboard/responder.php');
 }
 
 // Reports by category

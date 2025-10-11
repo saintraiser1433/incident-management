@@ -16,14 +16,11 @@ if (is_logged_in()) {
         case 'Organization Account':
             redirect('dashboard/organization.php');
             break;
-        case 'Responder':
-            redirect('dashboard/responder.php');
-            break;
         default:
             redirect('auth/login.php');
     }
 } else {
-    // Redirect to login page
-    redirect('auth/login.php');
+    // For guests, redirect to departments page (responder dashboard)
+    redirect('dashboard/responder.php');
 }
 ?>

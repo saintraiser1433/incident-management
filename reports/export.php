@@ -25,10 +25,9 @@ $organization = $_GET['organization'] ?? '';
 
 $query = "SELECT ir.id, ir.title, ir.description, ir.category, ir.severity_level, ir.status, ir.location,
                  ir.incident_date, ir.incident_time, ir.created_at,
-                 o.org_name, u.name AS reporter_name, rq.priority_number
+                 o.org_name, ir.reported_by AS reporter_name, rq.priority_number
           FROM incident_reports ir
           LEFT JOIN organizations o ON ir.organization_id = o.id
-          LEFT JOIN users u ON ir.reported_by = u.id
           LEFT JOIN report_queue rq ON rq.report_id = ir.id
           WHERE 1=1";
 $params = [];

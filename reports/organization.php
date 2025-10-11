@@ -21,9 +21,8 @@ $date_to = $_GET['date_to'] ?? '';
 $database = new Database();
 $db = $database->getConnection();
 
-$query = "SELECT ir.*, u.name as reporter_name, rq.priority_number 
+$query = "SELECT ir.*, ir.reported_by as reporter_name, rq.priority_number 
           FROM incident_reports ir 
-          LEFT JOIN users u ON ir.reported_by = u.id 
           LEFT JOIN report_queue rq ON rq.report_id = ir.id 
           WHERE ir.organization_id = ?";
 $params = [$_SESSION['organization_id']];
@@ -60,10 +59,9 @@ $stmt->execute($params);
 $reports = $stmt->fetchAll();
 
 // Fetch waiting queue for this organization
-$queueQuery = "SELECT rq.id as queue_id, rq.created_at as queued_at, ir.*, u.name as reporter_name 
+$queueQuery = "SELECT rq.id as queue_id, rq.created_at as queued_at, ir.*, ir.reported_by as reporter_name 
                FROM report_queue rq 
                JOIN incident_reports ir ON rq.report_id = ir.id 
-               LEFT JOIN users u ON ir.reported_by = u.id 
                WHERE rq.organization_id = ? AND rq.status = 'Waiting' 
                ORDER BY rq.created_at ASC";
 $queueStmt = $db->prepare($queueQuery);

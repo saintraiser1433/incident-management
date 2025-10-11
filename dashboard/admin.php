@@ -54,9 +54,8 @@ $stmt->execute();
 $org_counts = $stmt->fetchAll();
 
 // Recent reports
-$query = "SELECT ir.*, u.name as reporter_name, o.org_name 
+$query = "SELECT ir.*, ir.reported_by as reporter_name, o.org_name 
           FROM incident_reports ir 
-          LEFT JOIN users u ON ir.reported_by = u.id 
           LEFT JOIN organizations o ON ir.organization_id = o.id 
           ORDER BY ir.created_at DESC 
           LIMIT 10";

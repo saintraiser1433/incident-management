@@ -31,9 +31,6 @@ if ($_SESSION['user_role'] == 'Organization Account' && $report['organization_id
     redirect('index.php?error=access_denied');
 }
 
-if ($_SESSION['user_role'] == 'Responder' && $report['reported_by'] != $_SESSION['user_id']) {
-    redirect('index.php?error=access_denied');
-}
 
 $success_message = '';
 $error_message = '';
@@ -109,9 +106,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             if ($status != $report['status']) {
                 try {
                     // Get reporter details for SMS notification
-                    $detailsQuery = "SELECT u.name as reporter_name, u.email as reporter_email, u.contact_number as reporter_contact
+                    $detailsQuery = "SELECT ir.reported_by as reporter_name, 'N/A' as reporter_email, 'N/A' as reporter_contact
                                     FROM incident_reports ir 
-                                    LEFT JOIN users u ON ir.reported_by = u.id 
                                     WHERE ir.id = ?";
                     $detailsStmt = $db->prepare($detailsQuery);
                     $detailsStmt->execute([$report_id]);

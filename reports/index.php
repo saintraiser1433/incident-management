@@ -30,7 +30,7 @@ $where_conditions = ["1=1"];
 $params = [];
 
 if (!empty($search)) {
-    $where_conditions[] = "(ir.title LIKE ? OR ir.description LIKE ? OR u.name LIKE ?)";
+    $where_conditions[] = "(ir.title LIKE ? OR ir.description LIKE ? OR ir.reported_by LIKE ?)";
     $params[] = "%$search%";
     $params[] = "%$search%";
     $params[] = "%$search%";
@@ -71,7 +71,6 @@ $where_clause = implode(" AND ", $where_conditions);
 // Get total count for pagination
 $count_query = "SELECT COUNT(*) as total 
                 FROM incident_reports ir 
-                LEFT JOIN users u ON ir.reported_by = u.id 
                 LEFT JOIN organizations o ON ir.organization_id = o.id 
                 WHERE $where_clause";
 $count_stmt = $db->prepare($count_query);
@@ -80,9 +79,8 @@ $total_records = $count_stmt->fetch()['total'];
 $total_pages = ceil($total_records / $per_page);
 
 // Get reports with pagination
-$query = "SELECT ir.*, u.name as reporter_name, o.org_name, rq.priority_number 
+$query = "SELECT ir.*, ir.reported_by as reporter_name, o.org_name, rq.priority_number 
           FROM incident_reports ir 
-          LEFT JOIN users u ON ir.reported_by = u.id 
           LEFT JOIN organizations o ON ir.organization_id = o.id 
           LEFT JOIN report_queue rq ON rq.report_id = ir.id 
           WHERE $where_clause

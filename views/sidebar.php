@@ -19,7 +19,7 @@ function isActive($needles, $current_page, $current_path) {
 <div class="col-md-3 col-lg-2 sidebar">
     <div class="position-sticky pt-3">
         <ul class="nav flex-column">
-            <?php if ($_SESSION['user_role'] == 'Admin'): ?>
+            <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] == 'Admin'): ?>
                 <li class="nav-item">
                     <a class="nav-link <?php echo isActive('admin', $current_page, $current_path) ? 'active' : ''; ?>" 
                        href="<?php echo BASE_URL; ?>dashboard/admin.php">
@@ -70,7 +70,7 @@ function isActive($needles, $current_page, $current_path) {
                     </a>
                 </li>
                 
-            <?php elseif ($_SESSION['user_role'] == 'Organization Account'): ?>
+            <?php elseif (isset($_SESSION['user_role']) && $_SESSION['user_role'] == 'Organization Account'): ?>
                 <li class="nav-item">
                     <a class="nav-link <?php echo isActive('organization', $current_page, $current_path) ? 'active' : ''; ?>" 
                        href="<?php echo BASE_URL; ?>dashboard/organization.php">
@@ -93,28 +93,6 @@ function isActive($needles, $current_page, $current_path) {
                     </a>
                 </li>
                 
-            <?php else: // Responder ?>
-                <li class="nav-item">
-                    <a class="nav-link <?php echo isActive('responder', $current_page, $current_path) ? 'active' : ''; ?>" 
-                       href="<?php echo BASE_URL; ?>dashboard/responder.php">
-                        <i class="fas fa-tachometer-alt"></i>
-                        Dashboard
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link <?php echo (strpos($current_path, '/reports/departments') !== false) ? 'active' : ''; ?>" 
-                       href="<?php echo BASE_URL; ?>reports/departments.php">
-                        <i class="fas fa-building"></i>
-                        Departments
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link <?php echo (strpos($current_path, '/reports/my-reports') !== false) ? 'active' : ''; ?>" 
-                       href="<?php echo BASE_URL; ?>reports/my-reports.php">
-                        <i class="fas fa-file-alt"></i>
-                        My Reports
-                    </a>
-                </li>
             <?php endif; ?>
         </ul>
         
@@ -123,7 +101,7 @@ function isActive($needles, $current_page, $current_path) {
         <div class="text-center text-white-50">
             <small>
                 <i class="fas fa-info-circle me-1"></i>
-                <?php echo $_SESSION['organization_name'] ?: 'System'; ?>
+                <?php echo isset($_SESSION['organization_name']) ? $_SESSION['organization_name'] : 'System'; ?>
             </small>
         </div>
     </div>

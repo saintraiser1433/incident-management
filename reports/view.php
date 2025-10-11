@@ -5,12 +5,21 @@
  */
 
 require_once '../config/config.php';
-require_login();
 
 $report_id = $_GET['id'] ?? 0;
+$is_guest_access = isset($_GET['guest']) && $_GET['guest'] == '1';
+
+// For guest access, we don't require login but need to validate the ticket exists
+if (!$is_guest_access) {
+    require_login();
+}
 
 if (!$report_id) {
-    redirect('index.php?error=invalid_report');
+    if ($is_guest_access) {
+        redirect('search.php?error=invalid_report');
+    } else {
+        redirect('index.php?error=invalid_report');
+    }
 }
 
 $database = new Database();
@@ -19,37 +28,62 @@ $db = $database->getConnection();
 // Handle POST for updates/comments
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
-    if (($action === 'add_update' || $action === 'add_comment') && ($_SESSION['user_role'] === 'Admin' || $_SESSION['user_role'] === 'Organization Account')) {
+    
+    // Allow updates only for logged-in Admin/Organization users
+    // Allow comments for both logged-in users and guests
+    if ($action === 'add_update' && !$is_guest_access && ($_SESSION['user_role'] === 'Admin' || $_SESSION['user_role'] === 'Organization Account')) {
         try {
-            if ($action === 'add_update') {
-                $text = trim($_POST['update_text'] ?? '');
-                if ($text !== '') {
-                    $q = "INSERT INTO incident_updates (report_id, update_text, updated_by) VALUES (?, ?, ?)";
+            $text = trim($_POST['update_text'] ?? '');
+            if ($text !== '') {
+                $q = "INSERT INTO incident_updates (report_id, update_text, updated_by) VALUES (?, ?, ?)";
+                $s = $db->prepare($q);
+                $s->execute([$report_id, $text, $_SESSION['user_id']]);
+                log_audit('CREATE', 'incident_updates', $db->lastInsertId());
+            }
+        } catch (Exception $e) {
+            error_log("Error adding update: " . $e->getMessage());
+        }
+    } else if ($action === 'add_comment') {
+        try {
+            $text = trim($_POST['comment_text'] ?? '');
+            $commenter_name = trim($_POST['commenter_name'] ?? '');
+            
+            if ($text !== '') {
+                if ($is_guest_access) {
+                    // Guest comment - require name
+                    if ($commenter_name === '') {
+                        throw new Exception('Please provide your name for the comment.');
+                    }
+                    // Insert comment with guest name (no user ID)
+                    $q = "INSERT INTO incident_comments (report_id, comment_text, commented_by, guest_name) VALUES (?, ?, NULL, ?)";
                     $s = $db->prepare($q);
-                    $s->execute([$report_id, $text, $_SESSION['user_id']]);
-                    log_audit('CREATE', 'incident_updates', $db->lastInsertId());
-                }
-            } else if ($action === 'add_comment') {
-                $text = trim($_POST['comment_text'] ?? '');
-                if ($text !== '') {
+                    $s->execute([$report_id, $text, $commenter_name]);
+                } else {
+                    // Logged-in user comment
                     $q = "INSERT INTO incident_comments (report_id, comment_text, commented_by) VALUES (?, ?, ?)";
                     $s = $db->prepare($q);
                     $s->execute([$report_id, $text, $_SESSION['user_id']]);
                     log_audit('CREATE', 'incident_comments', $db->lastInsertId());
                 }
+                // Store success message for display
+                $_SESSION['success_message'] = 'Comment added successfully!';
             }
         } catch (Exception $e) {
-            // swallow for now; could surface message if needed
+            // Store error message for display
+            $_SESSION['error_message'] = $e->getMessage();
         }
-        // PRG pattern
-        redirect('reports/view.php?id=' . urlencode($report_id));
+        // PRG pattern - preserve guest parameter
+        $redirect_url = 'reports/view.php?id=' . urlencode($report_id);
+        if ($is_guest_access) {
+            $redirect_url .= '&guest=1';
+        }
+        redirect($redirect_url);
     }
 }
 
 // Get report details
-$query = "SELECT ir.*, u.name as reporter_name, u.email as reporter_email, o.org_name, o.org_type, rq.priority_number 
+$query = "SELECT ir.*, ir.reported_by as reporter_name, 'N/A' as reporter_email, o.org_name, o.org_type, rq.priority_number 
           FROM incident_reports ir 
-          LEFT JOIN users u ON ir.reported_by = u.id 
           LEFT JOIN organizations o ON ir.organization_id = o.id 
           LEFT JOIN report_queue rq ON rq.report_id = ir.id 
           WHERE ir.id = ?";
@@ -58,17 +92,20 @@ $stmt->execute([$report_id]);
 $report = $stmt->fetch();
 
 if (!$report) {
-    redirect('index.php?error=report_not_found');
+    if ($is_guest_access) {
+        redirect('search.php?error=report_not_found');
+    } else {
+        redirect('index.php?error=report_not_found');
+    }
 }
 
-// Check access permissions
-if ($_SESSION['user_role'] == 'Organization Account' && $report['organization_id'] != $_SESSION['organization_id']) {
-    redirect('index.php?error=access_denied');
+// Check access permissions (skip for guest access)
+if (!$is_guest_access) {
+    if ($_SESSION['user_role'] == 'Organization Account' && $report['organization_id'] != $_SESSION['organization_id']) {
+        redirect('index.php?error=access_denied');
+    }
 }
 
-if ($_SESSION['user_role'] == 'Responder' && $report['reported_by'] != $_SESSION['user_id']) {
-    redirect('index.php?error=access_denied');
-}
 
 // Get photos
 $query = "SELECT * FROM incident_photos WHERE report_id = ? ORDER BY uploaded_at";
@@ -93,7 +130,7 @@ $stmt->execute([$report_id]);
 $updates = $stmt->fetchAll();
 
 // Get comments
-$query = "SELECT ic.*, u.name as commented_by_name 
+$query = "SELECT ic.*, COALESCE(u.name, ic.guest_name, 'Unknown') as commented_by_name 
           FROM incident_comments ic 
           LEFT JOIN users u ON ic.commented_by = u.id 
           WHERE ic.report_id = ? 
@@ -108,9 +145,11 @@ include '../views/header.php';
 
 <div class="container-fluid">
     <div class="row">
-        <?php include '../views/sidebar.php'; ?>
+        <?php if (!$is_guest_access): ?>
+            <?php include '../views/sidebar.php'; ?>
+        <?php endif; ?>
 
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
+        <main class="<?php echo $is_guest_access ? 'col-12' : 'col-md-9 ms-sm-auto col-lg-10'; ?> px-md-4 main-content">
             <div
                 class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h1 class="h2">
@@ -118,11 +157,17 @@ include '../views/header.php';
                 </h1>
                 <div class="btn-toolbar mb-2 mb-md-0">
                     <div class="btn-group me-2">
-                        <!-- <a href="index.php" class="btn btn-sm btn-outline-secondary">
-                            <i class="fas fa-arrow-left me-1"></i>Back to Reports
-                        </a> -->
-                        <?php if ($_SESSION['user_role'] == 'Admin' || 
-                                  ($_SESSION['user_role'] == 'Organization Account' && $report['organization_id'] == $_SESSION['organization_id'])): ?>
+                        <?php if ($is_guest_access): ?>
+                            <a href="search.php" class="btn btn-sm btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-1"></i>Back to Search
+                            </a>
+                        <?php else: ?>
+                            <!-- <a href="index.php" class="btn btn-sm btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-1"></i>Back to Reports
+                            </a> -->
+                        <?php endif; ?>
+                        <?php if (!$is_guest_access && (isset($_SESSION['user_role']) && $_SESSION['user_role'] == 'Admin' || 
+                                  (isset($_SESSION['user_role']) && $_SESSION['user_role'] == 'Organization Account' && $report['organization_id'] == $_SESSION['organization_id']))): ?>
                         <a href="edit.php?id=<?php echo $report['id']; ?>" class="btn btn-sm btn-outline-primary">
                             <i class="fas fa-edit me-1"></i>Edit
                         </a>
@@ -130,6 +175,22 @@ include '../views/header.php';
                     </div>
                 </div>
             </div>
+            
+            <?php if (isset($_SESSION['success_message'])): ?>
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <?php echo $_SESSION['success_message']; unset($_SESSION['success_message']); ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <?php endif; ?>
+            
+            <?php if (isset($_SESSION['error_message'])): ?>
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <?php echo $_SESSION['error_message']; unset($_SESSION['error_message']); ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <?php endif; ?>
 
             <div class="row">
                 <!-- Report Details -->
@@ -302,7 +363,7 @@ include '../views/header.php';
                             <?php endforeach; ?>
                             <?php endif; ?>
                         </div>
-                        <?php if ($_SESSION['user_role'] == 'Admin' || ($_SESSION['user_role'] == 'Organization Account' && $report['organization_id'] == $_SESSION['organization_id'])): ?>
+                        <?php if (!$is_guest_access && (isset($_SESSION['user_role']) && $_SESSION['user_role'] == 'Admin' || (isset($_SESSION['user_role']) && $_SESSION['user_role'] == 'Organization Account' && $report['organization_id'] == $_SESSION['organization_id']))): ?>
                         <div class="card-footer">
                             <form method="POST" class="d-flex gap-2">
                                 <input type="hidden" name="action" value="add_update">
@@ -337,10 +398,16 @@ include '../views/header.php';
                             <?php endforeach; ?>
                             <?php endif; ?>
                         </div>
-                        <?php if ($_SESSION['user_role'] == 'Admin' || ($_SESSION['user_role'] == 'Organization Account' && $report['organization_id'] == $_SESSION['organization_id'])): ?>
+                        <?php if ($is_guest_access || (isset($_SESSION['user_role']) && $_SESSION['user_role'] == 'Admin') || (isset($_SESSION['user_role']) && $_SESSION['user_role'] == 'Organization Account' && $report['organization_id'] == $_SESSION['organization_id'])): ?>
                         <div class="card-footer">
                             <form method="POST" class="d-flex gap-2">
                                 <input type="hidden" name="action" value="add_comment">
+                                <?php if ($is_guest_access): ?>
+                                    <input type="text" class="form-control" name="commenter_name"
+                                        placeholder="Your name..." required style="max-width: 150px;"
+                                        value="<?php echo htmlspecialchars($report['reported_by']); ?>"
+                                        readonly>
+                                <?php endif; ?>
                                 <input type="text" class="form-control" name="comment_text"
                                     placeholder="Write a comment..." required>
                                 <button class="btn btn-outline-secondary" type="submit"><i

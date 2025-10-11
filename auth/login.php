@@ -55,9 +55,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     case 'Organization Account':
                         redirect('dashboard/organization.php');
                         break;
-                    case 'Responder':
-                        redirect('dashboard/responder.php');
-                        break;
                     default:
                         redirect('dashboard/index.php');
                 }
@@ -132,6 +129,26 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         transform: translateY(-2px);
         box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
     }
+
+    .guest-access-section {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin: 1rem 0;
+    }
+
+    .btn-outline-primary {
+        border-color: #667eea;
+        color: #667eea;
+        transition: all 0.3s ease;
+    }
+
+    .btn-outline-primary:hover {
+        background-color: #667eea;
+        border-color: #667eea;
+        transform: translateY(-1px);
+        box-shadow: 0 3px 10px rgba(102, 126, 234, 0.3);
+    }
     </style>
 </head>
 
@@ -175,12 +192,27 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             </button>
                         </form>
 
+                        <!-- Guest Access Link -->
+                        <div class="guest-access-section">
+                            <div class="text-center">
+                                <p class="text-muted mb-3">
+                                    <i class="fas fa-info-circle me-2"></i>Don't have an account?
+                                </p>
+                                <a href="../dashboard/responder.php" class="btn btn-outline-primary">
+                                    <i class="fas fa-user-friends me-2"></i>Continue as Guest
+                                </a>
+                                <p class="small text-muted mt-3 mb-0">
+                                    <i class="fas fa-check-circle me-1"></i>
+                                    Submit incident reports without creating an account
+                                </p>
+                            </div>
+                        </div>
+
                         <div class="text-center mt-4">
                             <small class="text-muted">
                                 Demo Credentials:<br>
                                 Admin: admin@incidentmgmt.com / admin123<br>
-                                Organization: sarah.johnson@cityhospital.com / org123<br>
-                                Responder: john.smith@email.com / resp123
+                                Organization: sarah.johnson@cityhospital.com / org123
                             </small>
                         </div>
                     </div>

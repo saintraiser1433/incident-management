@@ -44,9 +44,8 @@ $category_counts = $stmt->fetchAll();
 $stats['category_counts'] = array_column($category_counts, 'count', 'category');
 
 // Recent reports for this organization
-$query = "SELECT ir.*, u.name as reporter_name 
+$query = "SELECT ir.*, ir.reported_by as reporter_name 
           FROM incident_reports ir 
-          LEFT JOIN users u ON ir.reported_by = u.id 
           WHERE ir.organization_id = ? 
           ORDER BY ir.incident_date DESC, ir.incident_time DESC 
           LIMIT 10";

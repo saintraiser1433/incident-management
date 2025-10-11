@@ -1,31 +1,32 @@
 <?php
 /**
- * Create Incident Report
+ * Create Incident Report (Guest Access)
  * Incident Report Management System
  */
 
 require_once '../config/config.php';
-require_role(['Responder']);
+// Remove role requirement - allow guest access
+// require_role(['Responder']);
 
-$success_message = '';
 $error_message = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $title = sanitize_input($_POST['title']);
-    $description = sanitize_input($_POST['description']);
-    $incident_date = sanitize_input($_POST['incident_date']);
-    $incident_time = sanitize_input($_POST['incident_time']);
-    $location = sanitize_input($_POST['location']);
-    $severity_level = sanitize_input($_POST['severity_level']);
-    $category = sanitize_input($_POST['category']);
-    $organization_id = sanitize_input($_POST['organization_id']);
+    $title = sanitize_input($_POST['title'] ?? '');
+    $reported_by = sanitize_input($_POST['reported_by'] ?? '');
+    $description = sanitize_input($_POST['description'] ?? '');
+    $incident_date = sanitize_input($_POST['incident_date'] ?? '');
+    $incident_time = sanitize_input($_POST['incident_time'] ?? '');
+    $location = sanitize_input($_POST['location'] ?? '');
+    $severity_level = sanitize_input($_POST['severity_level'] ?? '');
+    $category = sanitize_input($_POST['category'] ?? '');
+    $organization_id = sanitize_input($_POST['organization_id'] ?? '');
     $redirect = $_POST['redirect'] ?? ''; // optional
     
     // Witness data
     $witness_names = $_POST['witness_name'] ?? [];
     $witness_contacts = $_POST['witness_contact'] ?? [];
     
-    if (empty($title) || empty($description) || empty($incident_date) || empty($incident_time) || 
+    if (empty($title) || empty($reported_by) || empty($description) || empty($incident_date) || empty($incident_time) || 
         empty($location) || empty($severity_level) || empty($category) || empty($organization_id)) {
         $error_message = 'Please fill in all required fields.';
     } else {
@@ -43,30 +44,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $db = $database->getConnection();
         
         try {
-            // Restrict creating new report if responder has Pending or In Progress
-            $chk = $db->prepare("SELECT COUNT(*) AS cnt FROM incident_reports WHERE reported_by = ? AND status IN ('Pending','In Progress')");
-            $chk->execute([$_SESSION['user_id']]);
-            $row = $chk->fetch();
-            if ((int)$row['cnt'] > 0) {
-                if ($redirect === 'departments') {
-                    redirect('reports/departments.php?blocked=1');
+            // For guest users, skip the existing report check
+            if (is_logged_in()) {
+                // Restrict creating new report if user has Pending or In Progress
+                $chk = $db->prepare("SELECT COUNT(*) AS cnt FROM incident_reports WHERE reported_by = ? AND status IN ('Pending','In Progress')");
+                $chk->execute([$_SESSION['user_id']]);
+                $row = $chk->fetch();
+                if ((int)$row['cnt'] > 0) {
+                    if ($redirect === 'departments') {
+                        redirect('reports/departments.php?blocked=1');
+                    }
+                    throw new Exception('You already have a report that is Pending or In Progress. Complete it before creating a new one.');
                 }
-                throw new Exception('You already have a report that is Pending or In Progress. Complete it before creating a new one.');
             }
 
-            $db->beginTransaction();
-            
-            // Insert incident report
-            $query = "INSERT INTO incident_reports (title, description, incident_date, incident_time, 
-                      location, severity_level, category, reported_by, organization_id) 
-                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-            $stmt = $db->prepare($query);
-            $stmt->execute([$title, $description, $incident_date, $incident_time, $location, 
-                           $severity_level, $category, $_SESSION['user_id'], $organization_id]);
-            
-            $report_id = $db->lastInsertId();
-
-            // Ensure report_queue table exists (id, report_id, organization_id, status, priority_number, timestamps)
+            // Ensure report_queue table exists (outside transaction to avoid auto-commit issues)
             $db->exec("CREATE TABLE IF NOT EXISTS report_queue (
                 id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
                 report_id INT NOT NULL,
@@ -79,6 +71,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 KEY idx_report_queue_status (status),
                 KEY idx_report_queue_report (report_id)
             ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci");
+
+            $db->beginTransaction();
+            
+            // Insert incident report
+            $query = "INSERT INTO incident_reports (title, description, incident_date, incident_time, 
+                      location, severity_level, category, reported_by, organization_id) 
+                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            $stmt = $db->prepare($query);
+            $stmt->execute([$title, $description, $incident_date, $incident_time, $location, 
+                           $severity_level, $category, $reported_by, $organization_id]);
+            
+            $report_id = $db->lastInsertId();
 
             // Insert into queue as Waiting
             $queueInsert = $db->prepare("INSERT INTO report_queue (report_id, organization_id) VALUES (?, ?)");
@@ -128,19 +132,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             
             // Send SMS notification to organization (outside transaction)
             try {
-                // Get current user's role to determine if SMS should be sent
-                $userQuery = "SELECT role FROM users WHERE id = ?";
-                $userStmt = $db->prepare($userQuery);
-                $userStmt->execute([$_SESSION['user_id']]);
-                $currentUser = $userStmt->fetch();
+                // For guest users, we'll still send SMS notifications
+                $currentUserRole = null;
+                if (is_logged_in()) {
+                    // Get current user's role to determine if SMS should be sent
+                    $userQuery = "SELECT role FROM users WHERE id = ?";
+                    $userStmt = $db->prepare($userQuery);
+                    $userStmt->execute([$_SESSION['user_id']]);
+                    $currentUser = $userStmt->fetch();
+                    $currentUserRole = $currentUser['role'] ?? null;
+                }
                 
                 error_log("=== REPORT CREATION SMS DEBUG ===");
                 error_log("Report Creation - Report ID: {$report_id}");
-                error_log("Report Creation - Current User Role: " . ($currentUser['role'] ?? 'NULL'));
+                error_log("Report Creation - Current User Role: " . ($currentUserRole ?? 'Guest User'));
                 error_log("Report Creation - Report Title: {$title}");
                 
-                // Only send SMS if the report is created by a RESPONDER
-                if ($currentUser && $currentUser['role'] === 'Responder') {
+                // Send SMS for both guest users and responders
+                if (!$currentUserRole || $currentUserRole === 'Responder') {
                     // Include SMS functionality
                     require_once '../sms.php';
                     
@@ -168,28 +177,32 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         error_log("No contact number found for organization ID: {$organization_id}");
                     }
                     
-                    // 2. Send SMS to RESPONDER (confirmation)
-                    $responderQuery = "SELECT name, contact_number FROM users WHERE id = ?";
-                    $responderStmt = $db->prepare($responderQuery);
-                    $responderStmt->execute([$_SESSION['user_id']]);
-                    $responder = $responderStmt->fetch();
-                    
-                    if ($responder && !empty($responder['contact_number'])) {
-                        $responderSmsMessage = "MDRRMO-GLAN: Your incident report #{$report_id} '{$title}' has been successfully submitted to {$organization['org_name']}. You will be notified of any updates.";
+                    // 2. Send SMS to RESPONDER (confirmation) - only if logged in
+                    if (is_logged_in()) {
+                        $responderQuery = "SELECT name, contact_number FROM users WHERE id = ?";
+                        $responderStmt = $db->prepare($responderQuery);
+                        $responderStmt->execute([$_SESSION['user_id']]);
+                        $responder = $responderStmt->fetch();
                         
-                        error_log("=== SENDING SMS TO RESPONDER ===");
-                        error_log("SMS Recipient: RESPONDER - {$responder['contact_number']}");
-                        error_log("SMS Message: {$responderSmsMessage}");
-                        
-                        $responderSmsResult = sendSMS($responder['contact_number'], $responderSmsMessage);
-                        
-                        if (!$responderSmsResult['success']) {
-                            error_log("SMS notification to responder failed for report #{$report_id}: " . $responderSmsResult['error']);
+                        if ($responder && !empty($responder['contact_number'])) {
+                            $responderSmsMessage = "MDRRMO-GLAN: Your incident report #{$report_id} '{$title}' has been successfully submitted to {$organization['org_name']}. You will be notified of any updates.";
+                            
+                            error_log("=== SENDING SMS TO RESPONDER ===");
+                            error_log("SMS Recipient: RESPONDER - {$responder['contact_number']}");
+                            error_log("SMS Message: {$responderSmsMessage}");
+                            
+                            $responderSmsResult = sendSMS($responder['contact_number'], $responderSmsMessage);
+                            
+                            if (!$responderSmsResult['success']) {
+                                error_log("SMS notification to responder failed for report #{$report_id}: " . $responderSmsResult['error']);
+                            } else {
+                                error_log("SMS notification sent successfully to RESPONDER for report #{$report_id}");
+                            }
                         } else {
-                            error_log("SMS notification sent successfully to RESPONDER for report #{$report_id}");
+                            error_log("No contact number found for responder ID: {$_SESSION['user_id']}");
                         }
                     } else {
-                        error_log("No contact number found for responder ID: {$_SESSION['user_id']}");
+                        error_log("Guest user report created - no SMS confirmation sent to reporter");
                     }
                 } else {
                     error_log("=== NO SMS SENT ===");
@@ -202,12 +215,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 error_log("SMS notification error for report #{$report_id}: " . $smsError->getMessage());
             }
             
-            // Redirect back if requested (e.g., from modal)
+            // Redirect to success page
+            $redirect_url = "reports/success.php?id={$report_id}";
             if ($redirect === 'departments') {
-                redirect('reports/departments.php?created=1');
+                $redirect_url .= "&redirect=departments";
             }
-            
-            $success_message = 'Incident report created successfully!';
+            redirect($redirect_url);
             
         } catch (Exception $e) {
             // Only rollback if we're still in a transaction
@@ -236,22 +249,13 @@ include '../views/header.php';
 
 <div class="container-fluid">
     <div class="row">
-        <?php include '../views/sidebar.php'; ?>
-        
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
+        <div class="col-12">
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h1 class="h2">
                     <i class="fas fa-plus-circle me-2"></i>Create Incident Report
                 </h1>
             </div>
             
-            <?php if ($success_message): ?>
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    <i class="fas fa-check-circle me-2"></i>
-                    <?php echo $success_message; ?>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            <?php endif; ?>
             
             <?php if ($error_message): ?>
                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -280,6 +284,20 @@ include '../views/header.php';
                                     </div>
                                 </div>
                             </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="reported_by" class="form-label">Reported By *</label>
+                                    <input type="text" class="form-control" id="reported_by" name="reported_by" 
+                                           value="<?php echo isset($_POST['reported_by']) ? htmlspecialchars($_POST['reported_by']) : ''; ?>" 
+                                           placeholder="Enter your name" required>
+                                    <div class="invalid-feedback">
+                                        Please provide your name.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="category" class="form-label">Category *</label>
@@ -416,7 +434,7 @@ include '../views/header.php';
                     </form>
                 </div>
             </div>
-        </main>
+        </div>
     </div>
 </div>
 
