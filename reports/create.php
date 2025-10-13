@@ -14,8 +14,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $title = sanitize_input($_POST['title'] ?? '');
     $reported_by = sanitize_input($_POST['reported_by'] ?? '');
     $description = sanitize_input($_POST['description'] ?? '');
-    $incident_date = sanitize_input($_POST['incident_date'] ?? '');
-    $incident_time = sanitize_input($_POST['incident_time'] ?? '');
+    // Automatically set current date and time
+    $incident_date = date('Y-m-d');
+    $incident_time = date('H:i');
     $location = sanitize_input($_POST['location'] ?? '');
     $severity_level = sanitize_input($_POST['severity_level'] ?? '');
     $category = sanitize_input($_POST['category'] ?? '');
@@ -26,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $witness_names = $_POST['witness_name'] ?? [];
     $witness_contacts = $_POST['witness_contact'] ?? [];
     
-    if (empty($title) || empty($reported_by) || empty($description) || empty($incident_date) || empty($incident_time) || 
+    if (empty($title) || empty($reported_by) || empty($description) || 
         empty($location) || empty($severity_level) || empty($category) || empty($organization_id)) {
         $error_message = 'Please fill in all required fields.';
     } else {
@@ -328,22 +329,18 @@ include '../views/header.php';
                         <div class="row">
                             <div class="col-md-3">
                                 <div class="mb-3">
-                                    <label for="incident_date" class="form-label">Date *</label>
-                                    <input type="date" class="form-control" id="incident_date" name="incident_date" 
-                                           value="<?php echo isset($_POST['incident_date']) ? $_POST['incident_date'] : date('Y-m-d'); ?>" required>
-                                    <div class="invalid-feedback">
-                                        Please select the incident date.
-                                    </div>
+                                    <label for="incident_date" class="form-label">Report Date</label>
+                                    <input type="text" class="form-control" id="incident_date" 
+                                           value="<?php echo date('M d, Y'); ?>" readonly>
+                                    <div class="form-text">Automatically set to current date</div>
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="mb-3">
-                                    <label for="incident_time" class="form-label">Time *</label>
-                                    <input type="time" class="form-control" id="incident_time" name="incident_time" 
-                                           value="<?php echo isset($_POST['incident_time']) ? $_POST['incident_time'] : date('H:i'); ?>" required>
-                                    <div class="invalid-feedback">
-                                        Please select the incident time.
-                                    </div>
+                                    <label for="incident_time" class="form-label">Report Time</label>
+                                    <input type="text" class="form-control" id="incident_time" 
+                                           value="<?php echo date('g:i A'); ?>" readonly>
+                                    <div class="form-text">Automatically set to current time</div>
                                 </div>
                             </div>
                             <div class="col-md-3">
@@ -398,10 +395,22 @@ include '../views/header.php';
                         </div>
                         
                         <div class="mb-3">
-                            <label for="photos" class="form-label">Photos (Optional)</label>
+                            <label for="photos" class="form-label">
+                                <i class="fas fa-camera me-1"></i>Photos (Optional)
+                            </label>
                             <input type="file" class="form-control" id="photos" name="photos[]" multiple 
                                    accept="image/jpeg,image/jpg,image/png">
-                            <div class="form-text">You can upload multiple photos. Maximum 5MB per file. Allowed formats: JPG, PNG</div>
+                            <div class="form-text">
+                                <i class="fas fa-info-circle me-1"></i>
+                                You can select and upload multiple photos at once. Maximum 5MB per file. 
+                                Allowed formats: JPG, JPEG, PNG
+                            </div>
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    <i class="fas fa-lightbulb me-1"></i>
+                                    Tip: Hold Ctrl (or Cmd on Mac) to select multiple files, or drag and drop multiple files
+                                </small>
+                            </div>
                         </div>
                         
                         <div class="mb-3">
@@ -448,13 +457,68 @@ function addWitness() {
             <input type="text" class="form-control" name="witness_name[]" placeholder="Witness Name">
         </div>
         <div class="col-md-6">
-                            <input type="text" class="form-control" name="witness_contact[]" placeholder="09XXXXXXXXX (11 digits)"
-                                   pattern="09[0-9]{9}" title="Enter exactly 11 digits starting with 09 (e.g., 09123456789)"
-                                   maxlength="11" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 11)">
+            <input type="text" class="form-control" name="witness_contact[]" placeholder="09XXXXXXXXX (11 digits)"
+                   pattern="09[0-9]{9}" title="Enter exactly 11 digits starting with 09 (e.g., 09123456789)"
+                   maxlength="11" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 11)">
         </div>
     `;
     container.appendChild(newWitness);
 }
+
+// Photo upload preview functionality
+document.getElementById('photos').addEventListener('change', function(e) {
+    const files = e.target.files;
+    const fileList = document.getElementById('file-list');
+    
+    // Remove existing file list if it exists
+    if (fileList) {
+        fileList.remove();
+    }
+    
+    if (files.length > 0) {
+        // Create file list container
+        const container = document.createElement('div');
+        container.id = 'file-list';
+        container.className = 'mt-2';
+        
+        const header = document.createElement('div');
+        header.className = 'alert alert-info';
+        header.innerHTML = `<i class="fas fa-images me-1"></i>Selected ${files.length} file(s):`;
+        container.appendChild(header);
+        
+        const list = document.createElement('ul');
+        list.className = 'list-group list-group-flush';
+        
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const listItem = document.createElement('li');
+            listItem.className = 'list-group-item d-flex justify-content-between align-items-center';
+            
+            const fileInfo = document.createElement('div');
+            fileInfo.innerHTML = `
+                <i class="fas fa-file-image me-2 text-primary"></i>
+                <strong>${file.name}</strong>
+                <small class="text-muted ms-2">(${(file.size / 1024 / 1024).toFixed(2)} MB)</small>
+            `;
+            
+            const status = document.createElement('span');
+            if (file.size <= 5 * 1024 * 1024) {
+                status.className = 'badge bg-success';
+                status.textContent = 'Ready';
+            } else {
+                status.className = 'badge bg-danger';
+                status.textContent = 'Too large';
+            }
+            
+            listItem.appendChild(fileInfo);
+            listItem.appendChild(status);
+            list.appendChild(listItem);
+        }
+        
+        container.appendChild(list);
+        e.target.parentNode.appendChild(container);
+    }
+});
 </script>
 
 <?php include '../views/footer.php'; ?>
