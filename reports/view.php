@@ -25,6 +25,26 @@ if (!$report_id) {
 $database = new Database();
 $db = $database->getConnection();
 
+// Get report details first (needed for SMS notifications)
+$query = "SELECT ir.*, ir.reported_by as reporter_name, ir.reporter_contact_number, o.org_name, o.org_type, rq.priority_number, rq.assigned_to,
+          om.name as assigned_member_name
+          FROM incident_reports ir 
+          LEFT JOIN organizations o ON ir.organization_id = o.id 
+          LEFT JOIN report_queue rq ON rq.report_id = ir.id 
+          LEFT JOIN organization_members om ON rq.assigned_to = om.id
+          WHERE ir.id = ?";
+$stmt = $db->prepare($query);
+$stmt->execute([$report_id]);
+$report = $stmt->fetch();
+
+if (!$report) {
+    if ($is_guest_access) {
+        redirect('search.php?error=report_not_found');
+    } else {
+        redirect('index.php?error=report_not_found');
+    }
+}
+
 // Handle POST for updates/comments
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
@@ -39,6 +59,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $s = $db->prepare($q);
                 $s->execute([$report_id, $text, $_SESSION['user_id']]);
                 log_audit('CREATE', 'incident_updates', $db->lastInsertId());
+                
+                // Send SMS to respondent if organization head adds update
+                if ($_SESSION['user_role'] === 'Organization Account' && !empty($report['reporter_contact_number'])) {
+                    try {
+                        require_once '../sms.php';
+                        $smsMessage = "MDRRMO-GLAN: Update on your incident report #{$report_id} '{$report['title']}': " . substr($text, 0, 100) . (strlen($text) > 100 ? '...' : '');
+                        $smsResult = sendSMS($report['reporter_contact_number'], $smsMessage);
+                        if (!$smsResult['success']) {
+                            error_log("SMS notification failed for report #{$report_id} update: " . $smsResult['error']);
+                        }
+                    } catch (Exception $smsError) {
+                        error_log("SMS notification error for report #{$report_id} update: " . $smsError->getMessage());
+                    }
+                }
             }
         } catch (Exception $e) {
             error_log("Error adding update: " . $e->getMessage());
@@ -64,6 +98,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $s = $db->prepare($q);
                     $s->execute([$report_id, $text, $_SESSION['user_id']]);
                     log_audit('CREATE', 'incident_comments', $db->lastInsertId());
+                    
+                    // Send SMS to respondent if organization head adds comment
+                    if ($_SESSION['user_role'] === 'Organization Account' && !empty($report['reporter_contact_number'])) {
+                        try {
+                            require_once '../sms.php';
+                            $smsMessage = "MDRRMO-GLAN: New comment on your incident report #{$report_id} '{$report['title']}': " . substr($text, 0, 100) . (strlen($text) > 100 ? '...' : '');
+                            $smsResult = sendSMS($report['reporter_contact_number'], $smsMessage);
+                            if (!$smsResult['success']) {
+                                error_log("SMS notification failed for report #{$report_id} comment: " . $smsResult['error']);
+                            }
+                        } catch (Exception $smsError) {
+                            error_log("SMS notification error for report #{$report_id} comment: " . $smsError->getMessage());
+                        }
+                    }
                 }
                 // Store success message for display
                 $_SESSION['success_message'] = 'Comment added successfully!';
@@ -78,24 +126,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $redirect_url .= '&guest=1';
         }
         redirect($redirect_url);
-    }
-}
-
-// Get report details
-$query = "SELECT ir.*, ir.reported_by as reporter_name, 'N/A' as reporter_email, o.org_name, o.org_type, rq.priority_number 
-          FROM incident_reports ir 
-          LEFT JOIN organizations o ON ir.organization_id = o.id 
-          LEFT JOIN report_queue rq ON rq.report_id = ir.id 
-          WHERE ir.id = ?";
-$stmt = $db->prepare($query);
-$stmt->execute([$report_id]);
-$report = $stmt->fetch();
-
-if (!$report) {
-    if ($is_guest_access) {
-        redirect('search.php?error=report_not_found');
-    } else {
-        redirect('index.php?error=report_not_found');
     }
 }
 
@@ -256,10 +286,24 @@ include '../views/header.php';
                                 <div class="col-md-6">
                                     <strong>Reported By:</strong><br>
                                     <?php echo htmlspecialchars($report['reporter_name']); ?>
-                                    <small
-                                        class="text-muted d-block"><?php echo htmlspecialchars($report['reporter_email']); ?></small>
+                                    <?php if (!empty($report['reporter_contact_number'])): ?>
+                                        <small class="text-muted d-block">
+                                            <i class="fas fa-phone me-1"></i><?php echo htmlspecialchars($report['reporter_contact_number']); ?>
+                                        </small>
+                                    <?php endif; ?>
                                 </div>
                             </div>
+                            
+                            <?php if (!empty($report['assigned_member_name'])): ?>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <strong>Assigned Member:</strong><br>
+                                    <span class="badge bg-primary">
+                                        <i class="fas fa-user me-1"></i><?php echo htmlspecialchars($report['assigned_member_name']); ?>
+                                    </span>
+                                </div>
+                            </div>
+                            <?php endif; ?>
 
                             <div class="mb-3">
                                 <strong>Description:</strong><br>

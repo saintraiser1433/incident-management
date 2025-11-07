@@ -106,7 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             if ($status != $report['status']) {
                 try {
                     // Get reporter details for SMS notification
-                    $detailsQuery = "SELECT ir.reported_by as reporter_name, 'N/A' as reporter_email, 'N/A' as reporter_contact
+                    $detailsQuery = "SELECT ir.reported_by as reporter_name, ir.reporter_contact_number as reporter_contact, ir.title
                                     FROM incident_reports ir 
                                     WHERE ir.id = ?";
                     $detailsStmt = $db->prepare($detailsQuery);
@@ -125,7 +125,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     
                     // CRITICAL: Send SMS ONLY to responder (reporter), NEVER to organization
                     if ($details && !empty($details['reporter_contact'])) {
-                        $smsMessage = "MDRRMO-GLAN: Your incident report #{$report_id} status has been updated to '{$status}' by {$_SESSION['user_name']}. Please check the system for details.";
+                        $reportTitle = $details['title'] ?? 'Report';
+                        $smsMessage = "MDRRMO-GLAN: Your incident report #{$report_id} '{$reportTitle}' status has been updated to '{$status}'. Please check the system for details.";
                         
                         error_log("=== SENDING SMS TO RESPONDER ONLY ===");
                         error_log("SMS Recipient: RESPONDER - {$details['reporter_contact']}");

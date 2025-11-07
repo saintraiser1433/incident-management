@@ -12,7 +12,7 @@ if (session_status() == PHP_SESSION_NONE) {
 // Application settings
 define('APP_NAME', 'MDRRMO-GLAN Incident Reporting and Response Coordination System');
 define('APP_VERSION', '1.0.0');
-define('BASE_URL', 'http://localhost/incident-management/');
+define('BASE_URL', 'http://localhost:8090/incident-management/');
 
 // File upload settings
 define('UPLOAD_DIR', 'uploads/');

@@ -21,9 +21,11 @@ $date_to = $_GET['date_to'] ?? '';
 $database = new Database();
 $db = $database->getConnection();
 
-$query = "SELECT ir.*, ir.reported_by as reporter_name, rq.priority_number 
+$query = "SELECT ir.*, ir.reported_by as reporter_name, rq.priority_number, rq.assigned_to,
+          om.name as assigned_member_name
           FROM incident_reports ir 
           LEFT JOIN report_queue rq ON rq.report_id = ir.id 
+          LEFT JOIN organization_members om ON rq.assigned_to = om.id
           WHERE ir.organization_id = ?";
 $params = [$_SESSION['organization_id']];
 
@@ -67,6 +69,12 @@ $queueQuery = "SELECT rq.id as queue_id, rq.created_at as queued_at, ir.*, ir.re
 $queueStmt = $db->prepare($queueQuery);
 $queueStmt->execute([$_SESSION['organization_id']]);
 $waiting_queue = $queueStmt->fetchAll();
+
+// Fetch organization members for assignment dropdown
+$membersQuery = "SELECT id, name FROM organization_members WHERE organization_id = ? ORDER BY name";
+$membersStmt = $db->prepare($membersQuery);
+$membersStmt->execute([$_SESSION['organization_id']]);
+$members = $membersStmt->fetchAll();
 ?>
 
 <div class="container-fluid">
@@ -192,6 +200,18 @@ $waiting_queue = $queueStmt->fetchAll();
                                             <td>
                                                 <form method="POST" action="approve_queue.php" class="d-inline">
                                                     <input type="hidden" name="queue_id" value="<?php echo $q['queue_id']; ?>">
+                                                    <?php if (!empty($members)): ?>
+                                                        <div class="mb-2">
+                                                            <select name="assigned_to" class="form-select form-select-sm">
+                                                                <option value="">Assign to member (optional)</option>
+                                                                <?php foreach ($members as $member): ?>
+                                                                    <option value="<?php echo $member['id']; ?>">
+                                                                        <?php echo htmlspecialchars($member['name']); ?>
+                                                                    </option>
+                                                                <?php endforeach; ?>
+                                                            </select>
+                                                        </div>
+                                                    <?php endif; ?>
                                                     <button type="submit" class="btn btn-sm btn-success">
                                                         <i class="fas fa-check me-1"></i>Approve & Assign Priority
                                                     </button>
@@ -231,6 +251,7 @@ $waiting_queue = $queueStmt->fetchAll();
                                         <th>Severity</th>
                                         <th>Status</th>
                                         <th>Priority</th>
+                                        <th>Assigned To</th>
                                         <th>Reporter</th>
                                         <th>Date</th>
                                         <th>Actions</th>
@@ -263,6 +284,15 @@ $waiting_queue = $queueStmt->fetchAll();
                                                     <span class="badge bg-success">#<?php echo (int)$report['priority_number']; ?></span>
                                                 <?php else: ?>
                                                     <span class="text-muted">-</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
+                                                <?php if (!empty($report['assigned_member_name'])): ?>
+                                                    <span class="badge bg-primary">
+                                                        <i class="fas fa-user me-1"></i><?php echo htmlspecialchars($report['assigned_member_name']); ?>
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="text-muted">Not assigned</span>
                                                 <?php endif; ?>
                                             </td>
                                             <td><?php echo htmlspecialchars($report['reporter_name']); ?></td>

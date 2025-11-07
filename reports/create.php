@@ -13,6 +13,7 @@ $error_message = '';
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $title = sanitize_input($_POST['title'] ?? '');
     $reported_by = sanitize_input($_POST['reported_by'] ?? '');
+    $reporter_contact_number = sanitize_input($_POST['reporter_contact_number'] ?? '');
     $description = sanitize_input($_POST['description'] ?? '');
     // Automatically set current date and time
     $incident_date = date('Y-m-d');
@@ -31,11 +32,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         empty($location) || empty($severity_level) || empty($category) || empty($organization_id)) {
         $error_message = 'Please fill in all required fields.';
     } else {
+        // Validate reporter contact number if provided
+        if (!empty($reporter_contact_number) && !preg_match('/^09\d{9}$/', $reporter_contact_number)) {
+            $error_message = 'Reporter contact number must be a valid Philippine mobile number (format: 09XXXXXXXXX).';
+        }
         // Validate witness contact numbers
-        foreach ($witness_contacts as $contact) {
-            if (!empty($contact) && !preg_match('/^09\d{9}$/', $contact)) {
-                $error_message = 'Witness contact numbers must be valid Philippine mobile numbers (format: 09XXXXXXXXX).';
-                break;
+        if (empty($error_message)) {
+            foreach ($witness_contacts as $contact) {
+                if (!empty($contact) && !preg_match('/^09\d{9}$/', $contact)) {
+                    $error_message = 'Witness contact numbers must be valid Philippine mobile numbers (format: 09XXXXXXXXX).';
+                    break;
+                }
             }
         }
     }
@@ -66,22 +73,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 organization_id INT NOT NULL,
                 status ENUM('Waiting','Approved','Rejected') DEFAULT 'Waiting',
                 priority_number INT DEFAULT NULL,
+                assigned_to INT NULL DEFAULT NULL,
                 created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
                 approved_at TIMESTAMP NULL DEFAULT NULL,
                 KEY idx_report_queue_org (organization_id),
                 KEY idx_report_queue_status (status),
-                KEY idx_report_queue_report (report_id)
+                KEY idx_report_queue_report (report_id),
+                KEY idx_report_queue_assigned (assigned_to)
             ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci");
 
             $db->beginTransaction();
             
             // Insert incident report
             $query = "INSERT INTO incident_reports (title, description, incident_date, incident_time, 
-                      location, severity_level, category, reported_by, organization_id) 
-                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                      location, severity_level, category, reported_by, reporter_contact_number, organization_id) 
+                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             $stmt = $db->prepare($query);
             $stmt->execute([$title, $description, $incident_date, $incident_time, $location, 
-                           $severity_level, $category, $reported_by, $organization_id]);
+                           $severity_level, $category, $reported_by, $reporter_contact_number ?: null, $organization_id]);
             
             $report_id = $db->lastInsertId();
 
@@ -299,6 +308,17 @@ include '../views/header.php';
                         </div>
                         
                         <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="reporter_contact_number" class="form-label">Contact Number</label>
+                                    <input type="text" class="form-control" id="reporter_contact_number" name="reporter_contact_number" 
+                                           value="<?php echo isset($_POST['reporter_contact_number']) ? htmlspecialchars($_POST['reporter_contact_number']) : ''; ?>" 
+                                           placeholder="09XXXXXXXXX (11 digits)" pattern="09[0-9]{9}" 
+                                           title="Enter exactly 11 digits starting with 09 (e.g., 09123456789)"
+                                           maxlength="11" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 11)">
+                                    <div class="form-text">Optional - for SMS notifications about your report</div>
+                                </div>
+                            </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="category" class="form-label">Category *</label>

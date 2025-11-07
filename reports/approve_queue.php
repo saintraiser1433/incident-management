@@ -11,6 +11,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $queue_id = isset($_POST['queue_id']) ? (int)$_POST['queue_id'] : 0;
+$assigned_to = isset($_POST['assigned_to']) && !empty($_POST['assigned_to']) ? (int)$_POST['assigned_to'] : null;
+
 if ($queue_id <= 0) {
     redirect('reports/organization.php?error=Invalid+queue+item');
 }
@@ -28,11 +30,13 @@ try {
         organization_id INT NOT NULL,
         status ENUM('Waiting','Approved','Rejected') DEFAULT 'Waiting',
         priority_number INT DEFAULT NULL,
+        assigned_to INT NULL DEFAULT NULL,
         created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
         approved_at TIMESTAMP NULL DEFAULT NULL,
         KEY idx_report_queue_org (organization_id),
         KEY idx_report_queue_status (status),
-        KEY idx_report_queue_report (report_id)
+        KEY idx_report_queue_report (report_id),
+        KEY idx_report_queue_assigned (assigned_to)
     ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci");
 
     // Load queue item and validate organization ownership
@@ -49,22 +53,43 @@ try {
         redirect('reports/organization.php?error=Queue+item+already+processed');
     }
 
+    // Validate assigned member if provided
+    if ($assigned_to !== null) {
+        $memberCheck = $db->prepare("SELECT id FROM organization_members WHERE id = ? AND organization_id = ?");
+        $memberCheck->execute([$assigned_to, $_SESSION['organization_id']]);
+        if (!$memberCheck->fetch()) {
+            $db->rollBack();
+            redirect('reports/organization.php?error=Invalid+member+selected');
+        }
+    }
+
     // Get next priority number within this organization
     $stmt = $db->prepare("SELECT MAX(priority_number) AS max_p FROM report_queue WHERE organization_id = ? AND status = 'Approved'");
     $stmt->execute([$queue['organization_id']]);
     $row = $stmt->fetch();
     $next_priority = (int)($row['max_p'] ?? 0) + 1;
 
-    // Approve and assign priority
-    $update = $db->prepare("UPDATE report_queue SET status = 'Approved', priority_number = ?, approved_at = NOW() WHERE id = ?");
-    $update->execute([$next_priority, $queue_id]);
+    // Approve and assign priority and member
+    $update = $db->prepare("UPDATE report_queue SET status = 'Approved', priority_number = ?, assigned_to = ?, approved_at = NOW() WHERE id = ?");
+    $update->execute([$next_priority, $assigned_to, $queue_id]);
 
     // Update the linked incident report status to In Progress
     $updReport = $db->prepare("UPDATE incident_reports SET status = 'In Progress' WHERE id = ?");
     $updReport->execute([$queue['report_id']]);
 
     // Log an incident update visible to responder
+    $assignedMemberName = '';
+    if ($assigned_to !== null) {
+        $memberQuery = $db->prepare("SELECT name FROM organization_members WHERE id = ?");
+        $memberQuery->execute([$assigned_to]);
+        $member = $memberQuery->fetch();
+        $assignedMemberName = $member ? $member['name'] : '';
+    }
+    
     $msg = "Report approved by organization. Assigned priority number #" . $next_priority . ". Status set to In Progress.";
+    if ($assignedMemberName) {
+        $msg .= " Assigned to: " . $assignedMemberName . ".";
+    }
     $insUpdate = $db->prepare("INSERT INTO incident_updates (report_id, update_text, updated_by) VALUES (?, ?, ?)");
     $insUpdate->execute([$queue['report_id'], $msg, $_SESSION['user_id']]);
 
@@ -73,7 +98,7 @@ try {
     // Send SMS notification for approval (ONLY to responders, NOT to departments)
     try {
         // Get responder details for SMS notification
-        $detailsQuery = "SELECT ir.reported_by as reporter_name, 'N/A' as reporter_email, 'N/A' as reporter_contact,
+        $detailsQuery = "SELECT ir.reported_by as reporter_name, ir.reporter_contact_number as reporter_contact,
                                ir.title, ir.severity_level, ir.organization_id, o.org_name, o.contact_number as org_contact
                         FROM incident_reports ir 
                         LEFT JOIN organizations o ON ir.organization_id = o.id
@@ -97,6 +122,11 @@ try {
         // CRITICAL: Send SMS ONLY to responder (reporter), NEVER to organization
         if ($details && !empty($details['reporter_contact'])) {
             $smsMessage = "MDRRMO-GLAN: Your incident report #{$queue['report_id']} '{$details['title']}' has been approved and assigned priority #{$next_priority}. Status: In Progress.";
+            
+            // Add assigned member information to SMS if available
+            if ($assignedMemberName) {
+                $smsMessage .= " Assigned member {$assignedMemberName} will assist you with this report.";
+            }
             
             error_log("=== SENDING SMS TO RESPONDER ONLY ===");
             error_log("SMS Recipient: RESPONDER - {$details['reporter_contact']}");

@@ -86,6 +86,13 @@ function isActive($needles, $current_page, $current_path) {
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link <?php echo ($current_page === 'members' && strpos($current_path, '/organizations/') !== false) ? 'active' : ''; ?>" 
+                       href="<?php echo BASE_URL; ?>organizations/members.php">
+                        <i class="fas fa-users"></i>
+                        Members
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link <?php echo isActive('analytics', $current_page, $current_path) ? 'active' : ''; ?>" 
                        href="<?php echo BASE_URL; ?>dashboard/analytics.php">
                         <i class="fas fa-chart-bar"></i>
