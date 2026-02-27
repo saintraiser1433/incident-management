@@ -19,9 +19,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $incident_date = date('Y-m-d');
     $incident_time = date('H:i');
     $location = sanitize_input($_POST['location'] ?? '');
+    $latitude = isset($_POST['latitude']) ? sanitize_input($_POST['latitude']) : null;
+    $longitude = isset($_POST['longitude']) ? sanitize_input($_POST['longitude']) : null;
     $severity_level = sanitize_input($_POST['severity_level'] ?? '');
     $category = sanitize_input($_POST['category'] ?? '');
     $organization_id = sanitize_input($_POST['organization_id'] ?? '');
+    $family_contact_name = sanitize_input($_POST['family_contact_name'] ?? '');
+    $family_contact_number = sanitize_input($_POST['family_contact_number'] ?? '');
     $redirect = $_POST['redirect'] ?? ''; // optional
     
     // Witness data
@@ -36,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         if (!empty($reporter_contact_number) && !preg_match('/^09\d{9}$/', $reporter_contact_number)) {
             $error_message = 'Reporter contact number must be a valid Philippine mobile number (format: 09XXXXXXXXX).';
         }
-        // Validate witness contact numbers
+        // Validate reporter contact number if provided
         if (empty($error_message)) {
             foreach ($witness_contacts as $contact) {
                 if (!empty($contact) && !preg_match('/^09\d{9}$/', $contact)) {
@@ -44,6 +48,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     break;
                 }
             }
+        }
+        // Validate family contact number if provided
+        if (empty($error_message) && !empty($family_contact_number) && !preg_match('/^09\d{9}$/', $family_contact_number)) {
+            $error_message = 'Family contact number must be a valid Philippine mobile number (format: 09XXXXXXXXX).';
         }
     }
     
@@ -86,11 +94,25 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             
             // Insert incident report
             $query = "INSERT INTO incident_reports (title, description, incident_date, incident_time, 
-                      location, severity_level, category, reported_by, reporter_contact_number, organization_id) 
-                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                      location, latitude, longitude, severity_level, category, reported_by, reporter_contact_number, family_contact_name, family_contact_number, organization_id) 
+                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             $stmt = $db->prepare($query);
-            $stmt->execute([$title, $description, $incident_date, $incident_time, $location, 
-                           $severity_level, $category, $reported_by, $reporter_contact_number ?: null, $organization_id]);
+            $stmt->execute([
+                $title,
+                $description,
+                $incident_date,
+                $incident_time,
+                $location,
+                $latitude !== '' ? $latitude : null,
+                $longitude !== '' ? $longitude : null,
+                $severity_level,
+                $category,
+                $reported_by,
+                $reporter_contact_number ?: null,
+                $family_contact_name ?: null,
+                $family_contact_number ?: null,
+                $organization_id
+            ]);
             
             $report_id = $db->lastInsertId();
 
@@ -409,8 +431,60 @@ include '../views/header.php';
                             <label for="location" class="form-label">Location *</label>
                             <input type="text" class="form-control" id="location" name="location" 
                                    value="<?php echo isset($_POST['location']) ? htmlspecialchars($_POST['location']) : ''; ?>" required>
+                            <div class="form-text">
+                                Type the address or landmark, then use the map below to drop a precise pin.
+                            </div>
                             <div class="invalid-feedback">
                                 Please provide the incident location.
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-map-marker-alt me-1"></i>Pin Location on Map (Optional but Recommended)
+                            </label>
+                            <div id="incident-map" style="height: 320px; border-radius: 0.5rem; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);"></div>
+                            <input type="hidden" id="latitude" name="latitude" value="<?php echo isset($_POST['latitude']) ? htmlspecialchars($_POST['latitude']) : ''; ?>">
+                            <input type="hidden" id="longitude" name="longitude" value="<?php echo isset($_POST['longitude']) ? htmlspecialchars($_POST['longitude']) : ''; ?>">
+                            <div class="form-text">
+                                Click on the map to set the exact incident location. You can click again to move the pin.
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <h5 class="mb-2">
+                                <i class="fas fa-user-friends me-1"></i>Family / Emergency Contact (Optional)
+                            </h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label for="family_contact_name" class="form-label">Contact Name</label>
+                                    <input
+                                        type="text"
+                                        class="form-control"
+                                        id="family_contact_name"
+                                        name="family_contact_name"
+                                        value="<?php echo isset($_POST['family_contact_name']) ? htmlspecialchars($_POST['family_contact_name']) : ''; ?>"
+                                        placeholder="Name of family or emergency contact person"
+                                    >
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="family_contact_number" class="form-label">Contact Number</label>
+                                    <input
+                                        type="text"
+                                        class="form-control"
+                                        id="family_contact_number"
+                                        name="family_contact_number"
+                                        value="<?php echo isset($_POST['family_contact_number']) ? htmlspecialchars($_POST['family_contact_number']) : ''; ?>"
+                                        placeholder="09XXXXXXXXX (11 digits)"
+                                        pattern="09[0-9]{9}"
+                                        title="Enter exactly 11 digits starting with 09 (e.g., 09123456789)"
+                                        maxlength="11"
+                                        oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 11)"
+                                    >
+                                    <div class="form-text">
+                                        They may receive SMS updates when the incident is in progress or resolved.
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         
@@ -468,6 +542,105 @@ include '../views/header.php';
 </div>
 
 <script>
+// Map + geolocation for incident pin
+document.addEventListener('DOMContentLoaded', function() {
+    const mapElement = document.getElementById('incident-map');
+    if (mapElement && typeof L !== 'undefined') {
+        const baseUrl = '<?php echo BASE_URL; ?>';
+        const defaultCenter = [6.0523, 125.2896]; // Default to Glan, Sarangani (can adjust as needed)
+        const latInput = document.getElementById('latitude');
+        const lngInput = document.getElementById('longitude');
+        const locationInput = document.getElementById('location');
+
+        let map = L.map('incident-map');
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        let marker = null;
+        let reverseGeocodeTimeout = null;
+
+        function setMarker(lat, lng) {
+            if (marker) {
+                marker.setLatLng([lat, lng]);
+            } else {
+                marker = L.marker([lat, lng]).addTo(map);
+            }
+            latInput.value = lat.toFixed(8);
+            lngInput.value = lng.toFixed(8);
+
+            // Debounced reverse geocoding to update the location text field
+            if (reverseGeocodeTimeout) {
+                clearTimeout(reverseGeocodeTimeout);
+            }
+            reverseGeocodeTimeout = setTimeout(function() {
+                try {
+                    // Call local reverse geocoding proxy to avoid CORS issues
+                    const url = baseUrl + 'reverse_geocode.php?lat=' +
+                        encodeURIComponent(lat) +
+                        '&lng=' +
+                        encodeURIComponent(lng);
+                    fetch(url, {
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    })
+                        .then(function(response) { return response.ok ? response.json() : null; })
+                        .then(function(data) {
+                            if (!data || !data.success || !data.display_name) {
+                                return;
+                            }
+                            if (locationInput) {
+                                // Always update the location field when pin moves
+                                locationInput.value = data.display_name;
+                            }
+                        })
+                        .catch(function() {
+                            // Silent fail - pin still works even if reverse geocode fails
+                        });
+                } catch (e) {
+                    // Silent fail
+                }
+            }, 400);
+        }
+
+        // Initialize center
+        const parsedInitialLat = parseFloat(latInput.value);
+        const parsedInitialLng = parseFloat(lngInput.value);
+        const hasInitial =
+            latInput.value !== '' &&
+            lngInput.value !== '' &&
+            !Number.isNaN(parsedInitialLat) &&
+            !Number.isNaN(parsedInitialLng);
+
+        if (hasInitial) {
+            map.setView([parsedInitialLat, parsedInitialLng], 16);
+            setMarker(parsedInitialLat, parsedInitialLng);
+        } else if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                function(pos) {
+                    const lat = pos.coords.latitude;
+                    const lng = pos.coords.longitude;
+                    map.setView([lat, lng], 16);
+                    setMarker(lat, lng);
+                },
+                function() {
+                    map.setView(defaultCenter, 13);
+                }
+            );
+        } else {
+            map.setView(defaultCenter, 13);
+        }
+
+        map.on('click', function(e) {
+            setMarker(e.latlng.lat, e.latlng.lng);
+        });
+    }
+}
+);
+
 function addWitness() {
     const container = document.getElementById('witnesses-container');
     const newWitness = document.createElement('div');

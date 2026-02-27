@@ -25,16 +25,25 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $org_type = sanitize_input($_POST['org_type']);
         $contact_number = sanitize_input($_POST['contact_number']);
         $address = sanitize_input($_POST['address']);
+        $latitude = isset($_POST['latitude']) ? sanitize_input($_POST['latitude']) : null;
+        $longitude = isset($_POST['longitude']) ? sanitize_input($_POST['longitude']) : null;
         
         if (empty($org_name) || empty($org_type)) {
             $error_message = 'Organization name and type are required.';
-    } elseif (!empty($contact_number) && !preg_match('/^09\d{9}$/', $contact_number)) {
-        $error_message = 'Contact number must be a valid Philippine mobile number (format: 09XXXXXXXXX).';
+        } elseif (!empty($contact_number) && !preg_match('/^09\d{9}$/', $contact_number)) {
+            $error_message = 'Contact number must be a valid Philippine mobile number (format: 09XXXXXXXXX).';
         } else {
             try {
-                $query = "INSERT INTO organizations (org_name, org_type, contact_number, address) VALUES (?, ?, ?, ?)";
+                $query = "INSERT INTO organizations (org_name, org_type, contact_number, address, latitude, longitude) VALUES (?, ?, ?, ?, ?, ?)";
                 $stmt = $db->prepare($query);
-                $stmt->execute([$org_name, $org_type, $contact_number, $address]);
+                $stmt->execute([
+                    $org_name,
+                    $org_type,
+                    $contact_number,
+                    $address,
+                    $latitude !== '' ? $latitude : null,
+                    $longitude !== '' ? $longitude : null
+                ]);
                 
                 log_audit('CREATE', 'organizations', $db->lastInsertId());
                 $success_message = 'Organization created successfully!';
@@ -48,16 +57,26 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $org_type = sanitize_input($_POST['org_type']);
         $contact_number = sanitize_input($_POST['contact_number']);
         $address = sanitize_input($_POST['address']);
+        $latitude = isset($_POST['latitude']) ? sanitize_input($_POST['latitude']) : null;
+        $longitude = isset($_POST['longitude']) ? sanitize_input($_POST['longitude']) : null;
         
         if (empty($org_name) || empty($org_type)) {
             $error_message = 'Organization name and type are required.';
-    } elseif (!empty($contact_number) && !preg_match('/^09\d{9}$/', $contact_number)) {
-        $error_message = 'Contact number must be a valid Philippine mobile number (format: 09XXXXXXXXX).';
+        } elseif (!empty($contact_number) && !preg_match('/^09\d{9}$/', $contact_number)) {
+            $error_message = 'Contact number must be a valid Philippine mobile number (format: 09XXXXXXXXX).';
         } else {
             try {
-                $query = "UPDATE organizations SET org_name = ?, org_type = ?, contact_number = ?, address = ? WHERE id = ?";
+                $query = "UPDATE organizations SET org_name = ?, org_type = ?, contact_number = ?, address = ?, latitude = ?, longitude = ? WHERE id = ?";
                 $stmt = $db->prepare($query);
-                $stmt->execute([$org_name, $org_type, $contact_number, $address, $id]);
+                $stmt->execute([
+                    $org_name,
+                    $org_type,
+                    $contact_number,
+                    $address,
+                    $latitude !== '' ? $latitude : null,
+                    $longitude !== '' ? $longitude : null,
+                    $id
+                ]);
                 
                 log_audit('UPDATE', 'organizations', $id);
                 $success_message = 'Organization updated successfully!';
@@ -253,8 +272,14 @@ $organizations = $stmt->fetchAll();
                                     <td>
                                         <strong><?php echo htmlspecialchars($org['org_name']); ?></strong>
                                         <?php if ($org['address']): ?>
-                                        <br><small
-                                            class="text-muted"><?php echo htmlspecialchars($org['address']); ?></small>
+                                        <br><small class="text-muted"><?php echo htmlspecialchars($org['address']); ?></small>
+                                        <?php endif; ?>
+                                        <?php if (!is_null($org['latitude']) && !is_null($org['longitude'])): ?>
+                                            <br><small class="text-muted">
+                                                <i class="fas fa-map-marker-alt me-1"></i>
+                                                <?php echo number_format($org['latitude'], 5); ?>,
+                                                <?php echo number_format($org['longitude'], 5); ?>
+                                            </small>
                                         <?php endif; ?>
                                     </td>
                                     <td>
@@ -396,6 +421,17 @@ $organizations = $stmt->fetchAll();
                         <label for="address" class="form-label">Address</label>
                         <textarea class="form-control" id="address" name="address" rows="3"></textarea>
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label">
+                            <i class="fas fa-map-marker-alt me-1"></i>Pin Organization Location on Map (Optional)
+                        </label>
+                        <div id="org-map-create" style="height: 260px; border-radius: 0.5rem; overflow: hidden; border: 1px solid rgba(0,0,0,0.1);"></div>
+                        <input type="hidden" id="latitude" name="latitude">
+                        <input type="hidden" id="longitude" name="longitude">
+                        <div class="form-text">
+                            Click on the map to set the organization's location. This will be used to center the incident map for this organization.
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -445,6 +481,17 @@ $organizations = $stmt->fetchAll();
                         <label for="edit_address" class="form-label">Address</label>
                         <textarea class="form-control" id="edit_address" name="address" rows="3"></textarea>
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label">
+                            <i class="fas fa-map-marker-alt me-1"></i>Organization Location on Map (Optional)
+                        </label>
+                        <div id="org-map-edit" style="height: 260px; border-radius: 0.5rem; overflow: hidden; border: 1px solid rgba(0,0,0,0.1);"></div>
+                        <input type="hidden" id="edit_latitude" name="latitude">
+                        <input type="hidden" id="edit_longitude" name="longitude">
+                        <div class="form-text">
+                            Click on the map to update the organization's location.
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -480,14 +527,81 @@ $organizations = $stmt->fetchAll();
 </div>
 
 <script>
+function initOrgMap(mapElementId, latInputId, lngInputId, initialLat, initialLng) {
+    const el = document.getElementById(mapElementId);
+    const latInput = document.getElementById(latInputId);
+    const lngInput = document.getElementById(lngInputId);
+    if (!el || typeof L === 'undefined') {
+        return null;
+    }
+
+    const defaultCenter = [6.0523, 125.2896];
+    const hasInitial = initialLat !== null && initialLng !== null && initialLat !== '' && initialLng !== '';
+    const center = hasInitial ? [parseFloat(initialLat), parseFloat(initialLng)] : defaultCenter;
+    const zoom = hasInitial ? 14 : 12;
+
+    const map = L.map(mapElementId);
+    map.setView(center, zoom);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    let marker = null;
+    if (hasInitial && !isNaN(center[0]) && !isNaN(center[1])) {
+        marker = L.marker(center).addTo(map);
+        latInput.value = center[0].toFixed(8);
+        lngInput.value = center[1].toFixed(8);
+    }
+
+    function setMarker(lat, lng) {
+        if (marker) {
+            marker.setLatLng([lat, lng]);
+        } else {
+            marker = L.marker([lat, lng]).addTo(map);
+        }
+        latInput.value = lat.toFixed(8);
+        lngInput.value = lng.toFixed(8);
+    }
+
+    map.on('click', function(e) {
+        setMarker(e.latlng.lat, e.latlng.lng);
+    });
+
+    return map;
+}
+
 function editOrganization(org) {
     document.getElementById('edit_id').value = org.id;
     document.getElementById('edit_org_name').value = org.org_name;
     document.getElementById('edit_org_type').value = org.org_type;
     document.getElementById('edit_contact_number').value = org.contact_number || '';
     document.getElementById('edit_address').value = org.address || '';
-    new bootstrap.Modal(document.getElementById('editModal')).show();
+    document.getElementById('edit_latitude').value = org.latitude !== null ? org.latitude : '';
+    document.getElementById('edit_longitude').value = org.longitude !== null ? org.longitude : '';
+
+    const modalEl = document.getElementById('editModal');
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+
+    // Initialize map after modal is shown to ensure correct sizing
+    modalEl.addEventListener('shown.bs.modal', function onShown() {
+        initOrgMap(
+            'org-map-edit',
+            'edit_latitude',
+            'edit_longitude',
+            org.latitude !== null ? org.latitude : null,
+            org.longitude !== null ? org.longitude : null
+        );
+        modalEl.removeEventListener('shown.bs.modal', onShown);
+    });
 }
+
+// Initialize map for create modal when shown
+document.getElementById('createModal').addEventListener('shown.bs.modal', function() {
+    initOrgMap('org-map-create', 'latitude', 'longitude', null, null);
+});
 
 function deleteOrganization(id, name) {
     document.getElementById('delete_id').value = id;

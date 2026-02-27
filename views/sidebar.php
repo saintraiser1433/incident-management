@@ -35,6 +35,20 @@ function isActive($needles, $current_page, $current_path) {
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link <?php echo (strpos($current_path, '/reports/completion_summary.php') !== false) ? 'active' : ''; ?>" 
+                       href="<?php echo BASE_URL; ?>reports/completion_summary.php">
+                        <i class="fas fa-chart-pie"></i>
+                        Completion Summary
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?php echo (strpos($current_path, '/reports/map.php') !== false) ? 'active' : ''; ?>" 
+                       href="<?php echo BASE_URL; ?>reports/map.php">
+                        <i class="fas fa-map-marked-alt"></i>
+                        Incident Map
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link <?php echo ($current_page === 'index' && strpos($current_path, '/organizations/') !== false) ? 'active' : ''; ?>" 
                        href="<?php echo BASE_URL; ?>organizations/index.php">
                         <i class="fas fa-building"></i>
@@ -83,6 +97,20 @@ function isActive($needles, $current_page, $current_path) {
                        href="<?php echo BASE_URL; ?>reports/organization.php">
                         <i class="fas fa-file-alt"></i>
                         Our Reports
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?php echo (strpos($current_path, '/reports/completion_summary.php') !== false) ? 'active' : ''; ?>" 
+                       href="<?php echo BASE_URL; ?>reports/completion_summary.php">
+                        <i class="fas fa-chart-pie"></i>
+                        Completion Summary
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?php echo (strpos($current_path, '/reports/map.php') !== false) ? 'active' : ''; ?>" 
+                       href="<?php echo BASE_URL; ?>reports/map.php">
+                        <i class="fas fa-map-marked-alt"></i>
+                        Incident Map
                     </a>
                 </li>
                 <li class="nav-item">

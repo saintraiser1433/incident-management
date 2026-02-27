@@ -16,6 +16,9 @@ if (is_logged_in()) {
         case 'Organization Account':
             redirect('dashboard/organization.php');
             break;
+        case 'Organization Member':
+            redirect('dashboard/responder.php');
+            break;
         default:
             redirect('auth/login.php');
     }

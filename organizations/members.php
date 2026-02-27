@@ -21,13 +21,17 @@ $error_message = '';
 $db->exec("CREATE TABLE IF NOT EXISTS organization_members (
     id INT NOT NULL AUTO_INCREMENT,
     organization_id INT NOT NULL,
+    user_id INT DEFAULT NULL,
     name VARCHAR(255) NOT NULL,
     contact_number VARCHAR(20) DEFAULT NULL,
     email VARCHAR(191) DEFAULT NULL,
+    login_username VARCHAR(191) DEFAULT NULL,
+    login_password VARCHAR(255) DEFAULT NULL,
     created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     KEY idx_org_members_org (organization_id),
-    KEY idx_org_members_name (name)
+    KEY idx_org_members_name (name),
+    KEY idx_org_members_user (user_id)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci");
 
 // Handle form submission
@@ -38,13 +42,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $name = sanitize_input($_POST['name']);
         $email = sanitize_input($_POST['email'] ?? '');
         $contact_number = sanitize_input($_POST['contact_number'] ?? '');
+        $login_password = sanitize_input($_POST['login_password'] ?? '');
         
         if (empty($name)) {
             $error_message = 'Name is required.';
+        } elseif (empty($email)) {
+            $error_message = 'Email is required for member login.';
+        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $error_message = 'Invalid email address.';
+        } elseif (empty($login_password)) {
+            $error_message = 'Password is required.';
         } elseif (!empty($contact_number) && !preg_match('/^09\d{9}$/', $contact_number)) {
             $error_message = 'Contact number must be a valid Philippine mobile number (format: 09XXXXXXXXX).';
-        } elseif (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $error_message = 'Invalid email address.';
         } else {
             try {
                 // Check if member with same name already exists in this organization
@@ -54,12 +63,43 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 if ($stmt->fetch()) {
                     $error_message = 'A member with this name already exists in your organization.';
                 } else {
-                    $query = "INSERT INTO organization_members (organization_id, name, contact_number, email) VALUES (?, ?, ?, ?)";
-                    $stmt = $db->prepare($query);
-                    $stmt->execute([$_SESSION['organization_id'], $name, $contact_number ?: null, $email ?: null]);
-                    
-                    log_audit('CREATE', 'organization_members', $db->lastInsertId());
-                    $success_message = 'Member added successfully!';
+                    // Ensure email is not already used by another user
+                    $emailQuery = "SELECT id FROM users WHERE email = ?";
+                    $emailStmt = $db->prepare($emailQuery);
+                    $emailStmt->execute([$email]);
+                    if ($emailStmt->fetch()) {
+                        $error_message = 'Email is already used by another account.';
+                    } else {
+                        // Create corresponding users account
+                        $hashedPassword = password_hash($login_password, PASSWORD_BCRYPT);
+                        $userInsert = "INSERT INTO users (name, email, password, role, organization_id, contact_number) 
+                                       VALUES (?, ?, ?, 'Organization Member', ?, ?)";
+                        $userStmt = $db->prepare($userInsert);
+                        $userStmt->execute([
+                            $name,
+                            $email,
+                            $hashedPassword,
+                            $_SESSION['organization_id'],
+                            $contact_number ?: null
+                        ]);
+                        $userId = $db->lastInsertId();
+
+                        // Create organization member linked to this user
+                        $memberInsert = "INSERT INTO organization_members (organization_id, user_id, name, contact_number, email, login_password) 
+                                         VALUES (?, ?, ?, ?, ?, ?)";
+                        $memberStmt = $db->prepare($memberInsert);
+                        $memberStmt->execute([
+                            $_SESSION['organization_id'],
+                            $userId,
+                            $name,
+                            $contact_number ?: null,
+                            $email,
+                            $login_password ?: null
+                        ]);
+                        
+                        log_audit('CREATE', 'organization_members', $db->lastInsertId());
+                        $success_message = 'Member added successfully and can now login using email and password.';
+                    }
                 }
             } catch (Exception $e) {
                 $error_message = 'Error adding member: ' . $e->getMessage();
@@ -70,22 +110,31 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $name = sanitize_input($_POST['name']);
         $email = sanitize_input($_POST['email'] ?? '');
         $contact_number = sanitize_input($_POST['contact_number'] ?? '');
+        $login_password = sanitize_input($_POST['login_password'] ?? '');
         
         if (empty($name)) {
             $error_message = 'Name is required.';
+        } elseif (empty($email)) {
+            $error_message = 'Email is required for member login.';
+        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $error_message = 'Invalid email address.';
+        } elseif (empty($login_password)) {
+            $error_message = 'Password is required.';
         } elseif (!empty($contact_number) && !preg_match('/^09\d{9}$/', $contact_number)) {
             $error_message = 'Contact number must be a valid Philippine mobile number (format: 09XXXXXXXXX).';
-        } elseif (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $error_message = 'Invalid email address.';
         } else {
             try {
-                // Verify member belongs to same organization
-                $verifyQuery = "SELECT id FROM organization_members WHERE id = ? AND organization_id = ?";
+                // Verify member belongs to same organization and get linked user_id
+                $verifyQuery = "SELECT id, user_id FROM organization_members WHERE id = ? AND organization_id = ?";
                 $verifyStmt = $db->prepare($verifyQuery);
                 $verifyStmt->execute([$id, $_SESSION['organization_id']]);
-                if (!$verifyStmt->fetch()) {
+                $memberRow = $verifyStmt->fetch();
+
+                if (!$memberRow) {
                     $error_message = 'Member not found or access denied.';
                 } else {
+                    $linkedUserId = $memberRow['user_id'] ?? null;
+
                     // Check if another member with same name exists (excluding current member)
                     $query = "SELECT id FROM organization_members WHERE name = ? AND organization_id = ? AND id != ?";
                     $stmt = $db->prepare($query);
@@ -93,12 +142,67 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     if ($stmt->fetch()) {
                         $error_message = 'A member with this name already exists in your organization.';
                     } else {
-                        $query = "UPDATE organization_members SET name = ?, contact_number = ?, email = ? WHERE id = ?";
-                        $stmt = $db->prepare($query);
-                        $stmt->execute([$name, $contact_number ?: null, $email ?: null, $id]);
-                        
-                        log_audit('UPDATE', 'organization_members', $id);
-                        $success_message = 'Member updated successfully!';
+                        // Ensure email is not already used by another user (excluding linked user)
+                        if ($linkedUserId) {
+                            $emailQuery = "SELECT id FROM users WHERE email = ? AND id != ?";
+                            $emailParams = [$email, $linkedUserId];
+                        } else {
+                            $emailQuery = "SELECT id FROM users WHERE email = ?";
+                            $emailParams = [$email];
+                        }
+                        $emailStmt = $db->prepare($emailQuery);
+                        $emailStmt->execute($emailParams);
+                        if ($emailStmt->fetch()) {
+                            $error_message = 'Email is already used by another account.';
+                        } else {
+                            $hashedPassword = password_hash($login_password, PASSWORD_BCRYPT);
+
+                            if ($linkedUserId) {
+                                // Update existing users account
+                                $userUpdate = "UPDATE users 
+                                               SET name = ?, email = ?, password = ?, contact_number = ?, organization_id = ?, role = 'Organization Member'
+                                               WHERE id = ?";
+                                $userStmt = $db->prepare($userUpdate);
+                                $userStmt->execute([
+                                    $name,
+                                    $email,
+                                    $hashedPassword,
+                                    $contact_number ?: null,
+                                    $_SESSION['organization_id'],
+                                    $linkedUserId
+                                ]);
+                            } else {
+                                // Create new users account and link it
+                                $userInsert = "INSERT INTO users (name, email, password, role, organization_id, contact_number) 
+                                               VALUES (?, ?, ?, 'Organization Member', ?, ?)";
+                                $userStmt = $db->prepare($userInsert);
+                                $userStmt->execute([
+                                    $name,
+                                    $email,
+                                    $hashedPassword,
+                                    $_SESSION['organization_id'],
+                                    $contact_number ?: null
+                                ]);
+                                $linkedUserId = $db->lastInsertId();
+                            }
+
+                            // Update organization member record
+                            $memberUpdate = "UPDATE organization_members 
+                                             SET name = ?, contact_number = ?, email = ?, login_password = ?, user_id = ? 
+                                             WHERE id = ?";
+                            $memberStmt = $db->prepare($memberUpdate);
+                            $memberStmt->execute([
+                                $name,
+                                $contact_number ?: null,
+                                $email,
+                                $login_password ?: null,
+                                $linkedUserId,
+                                $id
+                            ]);
+                            
+                            log_audit('UPDATE', 'organization_members', $id);
+                            $success_message = 'Member updated successfully and login account synced.';
+                        }
                     }
                 }
             } catch (Exception $e) {
@@ -109,11 +213,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $id = sanitize_input($_POST['id']);
         
         try {
-            // Verify member belongs to same organization
-            $verifyQuery = "SELECT id FROM organization_members WHERE id = ? AND organization_id = ?";
+            // Verify member belongs to same organization and get linked user_id
+            $verifyQuery = "SELECT id, user_id FROM organization_members WHERE id = ? AND organization_id = ?";
             $verifyStmt = $db->prepare($verifyQuery);
             $verifyStmt->execute([$id, $_SESSION['organization_id']]);
-            if (!$verifyStmt->fetch()) {
+            $memberRow = $verifyStmt->fetch();
+
+            if (!$memberRow) {
                 $error_message = 'Member not found or access denied.';
             } else {
                 // Check if member has assigned reports
@@ -125,12 +231,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 if ($assign_count > 0) {
                     $error_message = 'Cannot delete member with assigned reports. Please reassign reports first.';
                 } else {
+                    // Optionally delete linked users account
+                    if (!empty($memberRow['user_id'])) {
+                        $deleteUser = "DELETE FROM users WHERE id = ?";
+                        $userStmt = $db->prepare($deleteUser);
+                        $userStmt->execute([$memberRow['user_id']]);
+                    }
+
                     $query = "DELETE FROM organization_members WHERE id = ?";
                     $stmt = $db->prepare($query);
                     $stmt->execute([$id]);
                     
                     log_audit('DELETE', 'organization_members', $id);
-                    $success_message = 'Member deleted successfully!';
+                    $success_message = 'Member and linked login account deleted successfully!';
                 }
             }
         } catch (Exception $e) {
@@ -209,6 +322,7 @@ $members = $stmt->fetchAll();
                                         <th>Name</th>
                                         <th>Email</th>
                                         <th>Contact Number</th>
+                                        <th>Password</th>
                                         <th>Assigned Reports</th>
                                         <th>Created</th>
                                         <th>Actions</th>
@@ -218,7 +332,7 @@ $members = $stmt->fetchAll();
                                     <?php foreach ($members as $member): ?>
                                         <tr>
                                             <td>
-                                                <strong><?php echo htmlspecialchars($member['name']); ?></strong>
+                           	                <strong><?php echo htmlspecialchars($member['name']); ?></strong>
                                             </td>
                                             <td>
                                                 <?php if (!empty($member['email'])): ?>
@@ -234,6 +348,16 @@ $members = $stmt->fetchAll();
                                                     </span>
                                                 <?php else: ?>
                                                     <span class="text-muted">No contact</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
+                                                <?php if (!empty($member['login_password'])): ?>
+                                                    <span class="member-password" data-password="<?php echo htmlspecialchars($member['login_password']); ?>">********</span>
+                                                    <button type="button" class="btn btn-sm btn-link p-0 ms-1" onclick="toggleMemberPassword(this)">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                <?php else: ?>
+                                                    <span class="text-muted">-</span>
                                                 <?php endif; ?>
                                             </td>
                                             <td>
@@ -277,7 +401,9 @@ $members = $stmt->fetchAll();
                 <div class="modal-body">
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle me-2"></i>
-                        <small>Members are tags for assignment only. They cannot login to the system.</small>
+                        <small>
+                            Password is stored for reference (members still log in using their email).
+                        </small>
                     </div>
                     <div class="mb-3">
                         <label for="name" class="form-label">Name *</label>
@@ -288,6 +414,17 @@ $members = $stmt->fetchAll();
                         <input type="email" class="form-control" id="email" name="email" 
                                placeholder="Optional">
                         <div class="form-text">Optional - for reference only</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="login_password" class="form-label">Password *</label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="login_password" name="login_password"
+                                   placeholder="Initial password" required>
+                            <button class="btn btn-outline-secondary" type="button"
+                                    onclick="toggleFieldPassword('login_password', this)">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label for="contact_number" class="form-label">Contact Number</label>
@@ -328,6 +465,17 @@ $members = $stmt->fetchAll();
                         <input type="email" class="form-control" id="edit_email" name="email" 
                                placeholder="Optional">
                         <div class="form-text">Optional - for reference only</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_login_password" class="form-label">Password *</label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="edit_login_password" name="login_password"
+                                   placeholder="Password" required>
+                            <button class="btn btn-outline-secondary" type="button"
+                                    onclick="toggleFieldPassword('edit_login_password', this)">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label for="edit_contact_number" class="form-label">Contact Number</label>
@@ -381,7 +529,47 @@ function editMember(member) {
     document.getElementById('edit_name').value = member.name;
     document.getElementById('edit_email').value = member.email || '';
     document.getElementById('edit_contact_number').value = member.contact_number || '';
+    document.getElementById('edit_login_password').value = member.login_password || '';
     new bootstrap.Modal(document.getElementById('editModal')).show();
+}
+
+function toggleFieldPassword(inputId, btn) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    const icon = btn.querySelector('i');
+    if (input.type === 'password') {
+        input.type = 'text';
+        if (icon) {
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        }
+    } else {
+        input.type = 'password';
+        if (icon) {
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        }
+    }
+}
+
+function toggleMemberPassword(button) {
+    const span = button.previousElementSibling;
+    if (!span || !span.classList.contains('member-password')) return;
+    const icon = button.querySelector('i');
+    const isHidden = span.textContent === '********';
+    if (isHidden) {
+        span.textContent = span.getAttribute('data-password') || '';
+        if (icon) {
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        }
+    } else {
+        span.textContent = '********';
+        if (icon) {
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        }
+    }
 }
 
 function deleteMember(id, name, assignedCount) {

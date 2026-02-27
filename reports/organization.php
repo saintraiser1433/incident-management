@@ -202,19 +202,27 @@ $members = $membersStmt->fetchAll();
                                                     <input type="hidden" name="queue_id" value="<?php echo $q['queue_id']; ?>">
                                                     <?php if (!empty($members)): ?>
                                                         <div class="mb-2">
-                                                            <select name="assigned_to" class="form-select form-select-sm">
-                                                                <option value="">Assign to member (optional)</option>
+                                                            <select name="assigned_to" class="form-select form-select-sm" required>
+                                                                <option value="" disabled selected>Select assignee *</option>
                                                                 <?php foreach ($members as $member): ?>
                                                                     <option value="<?php echo $member['id']; ?>">
                                                                         <?php echo htmlspecialchars($member['name']); ?>
                                                                     </option>
                                                                 <?php endforeach; ?>
                                                             </select>
+                                                            <small class="text-muted">Required: choose a member to handle this report.</small>
                                                         </div>
+                                                        <button type="submit" class="btn btn-sm btn-success">
+                                                            <i class="fas fa-check me-1"></i>Approve & Assign Priority
+                                                        </button>
+                                                    <?php else: ?>
+                                                        <div class="text-danger small mb-1">
+                                                            No organization members available. Add members first before approving.
+                                                        </div>
+                                                        <button type="button" class="btn btn-sm btn-secondary" disabled>
+                                                            <i class="fas fa-exclamation-triangle me-1"></i>Approve (Assignee required)
+                                                        </button>
                                                     <?php endif; ?>
-                                                    <button type="submit" class="btn btn-sm btn-success">
-                                                        <i class="fas fa-check me-1"></i>Approve & Assign Priority
-                                                    </button>
                                                 </form>
                                             </td>
                                         </tr>

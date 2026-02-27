@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Generation Time: Oct 11, 2025 at 03:12 PM
--- Server version: 8.2.0
--- PHP Version: 8.1.26
+-- Generation Time: Nov 07, 2025 at 04:59 AM
+-- Server version: 9.1.0
+-- PHP Version: 7.4.33
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS `audit_logs` (
   PRIMARY KEY (`id`),
   KEY `idx_audit_logs_user` (`user_id`),
   KEY `idx_audit_logs_timestamp` (`timestamp`)
-) ENGINE=MyISAM AUTO_INCREMENT=238 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=261 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Dumping data for table `audit_logs`
@@ -281,7 +281,30 @@ INSERT INTO `audit_logs` (`id`, `user_id`, `action`, `table_name`, `record_id`, 
 (234, 13, 'UPDATE', 'incident_reports', 26, '2025-10-11 15:07:48'),
 (235, 13, 'LOGOUT', 'users', 13, '2025-10-11 15:08:00'),
 (236, 1, 'LOGIN', 'users', 1, '2025-10-11 15:08:06'),
-(237, 1, 'LOGOUT', 'users', 1, '2025-10-11 15:08:49');
+(237, 1, 'LOGOUT', 'users', 1, '2025-10-11 15:08:49'),
+(238, 2, 'CREATE', 'organization_members', 1, '2025-11-07 04:08:31'),
+(239, 2, 'LOGOUT', 'users', 2, '2025-11-07 04:08:44'),
+(240, 2, 'LOGIN', 'users', 2, '2025-11-07 04:10:46'),
+(241, 2, 'CREATE', 'incident_comments', 12, '2025-11-07 04:11:52'),
+(242, 2, 'LOGOUT', 'users', 2, '2025-11-07 04:12:24'),
+(243, 1, 'LOGIN', 'users', 1, '2025-11-07 04:12:29'),
+(244, 1, 'LOGOUT', 'users', 1, '2025-11-07 04:12:52'),
+(245, 2, 'LOGIN', 'users', 2, '2025-11-07 04:12:58'),
+(246, 2, 'UPDATE', 'incident_reports', 27, '2025-11-07 04:13:11'),
+(247, 2, 'LOGOUT', 'users', 2, '2025-11-07 04:13:17'),
+(248, 1, 'LOGIN', 'users', 1, '2025-11-07 04:46:19'),
+(249, 1, 'UPDATE', 'sms_settings', 1, '2025-11-07 04:47:44'),
+(250, 1, 'UPDATE', 'sms_settings', 1, '2025-11-07 04:50:06'),
+(251, 1, 'UPDATE', 'sms_settings', 1, '2025-11-07 04:50:18'),
+(252, 1, 'UPDATE', 'organizations', 1, '2025-11-07 04:51:04'),
+(253, 1, 'LOGOUT', 'users', 1, '2025-11-07 04:51:11'),
+(254, 2, 'LOGIN', 'users', 2, '2025-11-07 04:52:08'),
+(255, 2, 'UPDATE', 'incident_reports', 28, '2025-11-07 04:52:37'),
+(256, 2, 'CREATE', 'incident_updates', 46, '2025-11-07 04:52:49'),
+(257, 2, 'CREATE', 'incident_comments', 13, '2025-11-07 04:52:56'),
+(258, 2, 'CREATE', 'incident_comments', 14, '2025-11-07 04:53:08'),
+(259, 2, 'LOGOUT', 'users', 2, '2025-11-07 04:57:42'),
+(260, 2, 'LOGIN', 'users', 2, '2025-11-07 04:58:52');
 
 -- --------------------------------------------------------
 
@@ -300,7 +323,7 @@ CREATE TABLE IF NOT EXISTS `incident_comments` (
   PRIMARY KEY (`id`),
   KEY `report_id` (`report_id`),
   KEY `commented_by` (`commented_by`)
-) ENGINE=MyISAM AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Dumping data for table `incident_comments`
@@ -316,7 +339,10 @@ INSERT INTO `incident_comments` (`id`, `report_id`, `comment_text`, `commented_b
 (7, 8, 'asd', 1, NULL, '2025-09-17 09:17:47'),
 (8, 3, 'fdfs', 2, NULL, '2025-09-17 09:18:29'),
 (10, 25, 'dfsfsdf', NULL, 'dasdas', '2025-10-11 15:02:50'),
-(11, 26, 'dugay', NULL, 'Anjelly Fusingan', '2025-10-11 15:06:29');
+(11, 26, 'dugay', NULL, 'Anjelly Fusingan', '2025-10-11 15:06:29'),
+(12, 27, 'fdsf', 2, NULL, '2025-11-07 04:11:52'),
+(13, 28, 'fsdfdsf', 2, NULL, '2025-11-07 04:52:56'),
+(14, 28, 'qwe', 2, NULL, '2025-11-07 04:53:08');
 
 -- --------------------------------------------------------
 
@@ -332,7 +358,7 @@ CREATE TABLE IF NOT EXISTS `incident_photos` (
   `uploaded_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `report_id` (`report_id`)
-) ENGINE=MyISAM AUTO_INCREMENT=18 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=21 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Dumping data for table `incident_photos`
@@ -355,7 +381,10 @@ INSERT INTO `incident_photos` (`id`, `report_id`, `file_path`, `uploaded_at`) VA
 (14, 16, 'uploads/incident_16_1759855292_0.jpg', '2025-10-07 16:41:32'),
 (15, 17, 'uploads/incident_17_1759855485_0.jpg', '2025-10-07 16:44:45'),
 (16, 23, 'uploads/incident_23_1760193638_0.png', '2025-10-11 14:40:38'),
-(17, 26, 'uploads/incident_26_1760195140_0.png', '2025-10-11 15:05:40');
+(17, 26, 'uploads/incident_26_1760195140_0.png', '2025-10-11 15:05:40'),
+(18, 27, 'uploads/incident_27_1762488568_0.png', '2025-11-07 04:09:28'),
+(19, 28, 'uploads/incident_28_1762491103_0.jpg', '2025-11-07 04:51:43'),
+(20, 29, 'uploads/incident_29_1762491515_0.jpg', '2025-11-07 04:58:35');
 
 -- --------------------------------------------------------
 
@@ -371,48 +400,58 @@ CREATE TABLE IF NOT EXISTS `incident_reports` (
   `incident_date` date NOT NULL,
   `incident_time` time NOT NULL,
   `location` varchar(255) NOT NULL,
+  `latitude` decimal(10,8) DEFAULT NULL,
+  `longitude` decimal(11,8) DEFAULT NULL,
   `severity_level` enum('Low','Medium','High','Critical') NOT NULL,
   `category` enum('Fire','Accident','Security','Medical','Emergency','Other') NOT NULL,
   `reported_by` varchar(255) NOT NULL,
+  `reporter_contact_number` varchar(20) DEFAULT NULL,
+  `family_contact_name` varchar(255) DEFAULT NULL,
+  `family_contact_number` varchar(20) DEFAULT NULL,
   `organization_id` int NOT NULL,
   `status` enum('Pending','In Progress','Resolved','Closed') DEFAULT 'Pending',
+  `resolution_notes` text,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_incident_reports_organization` (`organization_id`),
   KEY `idx_incident_reports_reported_by` (`reported_by`(250)),
   KEY `idx_incident_reports_status` (`status`),
-  KEY `idx_incident_reports_date` (`incident_date`)
-) ENGINE=MyISAM AUTO_INCREMENT=27 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+  KEY `idx_incident_reports_date` (`incident_date`),
+  KEY `idx_incident_reports_reporter_contact` (`reporter_contact_number`)
+) ENGINE=MyISAM AUTO_INCREMENT=30 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Dumping data for table `incident_reports`
 --
 
-INSERT INTO `incident_reports` (`id`, `title`, `description`, `incident_date`, `incident_time`, `location`, `severity_level`, `category`, `reported_by`, `organization_id`, `status`, `created_at`) VALUES
-(1, 'Kitchen Fire at Restaurant', 'Small grease fire in the kitchen area of downtown restaurant. Fire was contained quickly but caused smoke damage.', '2024-01-15', '14:30:00', '123 Main Street, Downtown', 'Medium', 'Fire', '5', 3, 'Resolved', '2025-09-17 05:43:56'),
-(2, 'Traffic Accident on Highway', 'Two-vehicle collision on Interstate 95. Minor injuries reported, vehicles blocking two lanes.', '2024-01-16', '08:45:00', 'Interstate 95, Mile Marker 42', 'High', 'Accident', '0', 2, 'Resolved', '2025-09-17 05:43:56'),
-(3, 'Patient Fall in Hospital', 'Elderly patient fell in hallway near room 205. No serious injuries but requires medical attention.', '2024-01-17', '10:15:00', 'City General Hospital, 2nd Floor', 'Low', 'Medical', '0', 1, 'Pending', '2025-09-17 05:43:56'),
-(4, 'Suspicious Activity on Campus', 'Unknown person seen loitering near student dormitories after hours. Security investigation ongoing.', '2024-01-18', '22:30:00', 'University Campus, Dormitory Area', 'Medium', 'Security', '0', 4, 'Resolved', '2025-09-17 05:43:56'),
-(5, 'Medical Emergency at Mall', 'Person collapsed in food court. CPR administered, ambulance called.', '2024-01-19', '15:20:00', 'City Mall, Food Court', 'High', 'Medical', '5', 1, 'Resolved', '2025-09-17 05:43:56'),
-(6, 'Car Break-in Incident', 'Multiple vehicles broken into in parking garage. Items stolen from vehicles.', '2024-01-20', '06:00:00', 'Downtown Parking Garage', 'Medium', 'Security', '0', 2, 'Closed', '2025-09-17 05:43:56'),
-(7, 'dasd', 'fsdf', '2025-09-17', '15:33:00', 'fdsfsd', 'Medium', 'Fire', '0', 6, 'Pending', '2025-09-17 07:34:08'),
-(8, 'fdsf', 'fsdfdsfds', '2025-09-17', '15:35:00', 'fsdfsd', 'Low', 'Fire', '0', 6, 'Resolved', '2025-09-17 07:35:34'),
-(9, 'fdsfds', 'fsdfsdfds', '2025-09-18', '17:42:00', 'fsdfsd', 'Low', 'Fire', '0', 1, 'Resolved', '2025-09-18 09:42:38'),
-(10, 'fsdfsd', 'fsdfds', '2025-09-18', '17:43:00', 'fsdfsd', 'Medium', 'Fire', '0', 1, 'Resolved', '2025-09-18 09:44:10'),
-(11, 'dfsdf', 'fsdfsdfsd', '2025-09-18', '17:57:00', 'fdsfds', 'Low', 'Fire', '0', 1, 'Resolved', '2025-09-18 09:57:33'),
-(12, 'gfdgf', 'gfdgfd', '2025-09-18', '17:59:00', 'gfdgf', 'Low', 'Accident', '0', 1, 'Resolved', '2025-09-18 09:59:24'),
-(13, 'gdfg', 'gdfgdfgfd', '2025-10-07', '18:48:00', 'gfdgf', 'Critical', 'Fire', '0', 3, 'Resolved', '2025-10-07 10:48:19'),
-(14, 'gfdgdf', 'gdfgfdgfd', '2025-10-07', '19:05:00', 'gfdgdf', 'Critical', 'Security', '0', 3, 'Resolved', '2025-10-07 11:05:12'),
-(17, 'fsdfsdf', 'fsdfdsfsd', '2025-10-07', '00:44:00', 'fdsfsd', 'Medium', 'Security', '0', 3, 'Pending', '2025-10-07 16:44:45'),
-(18, 'sfsdfds', 'fsdfsdfsdf', '2025-10-11', '14:15:00', 'fsdfsdfsd', 'Medium', 'Medical', '0', 3, 'Pending', '2025-10-11 14:23:57'),
-(19, 'sfsdfds', 'fsdfsdfsdf', '2025-10-11', '14:15:00', 'fsdfsdfsd', 'Medium', 'Medical', '0', 3, 'Pending', '2025-10-11 14:24:04'),
-(20, 'sfsdfds', 'fsdfsdfsdf', '2025-10-11', '14:15:00', 'fsdfsdfsd', 'Medium', 'Medical', 'qweqweqweqw', 3, 'Pending', '2025-10-11 14:25:16'),
-(21, 'fsfdsfsd', 'gdfgdfgdfgdff', '2025-10-11', '14:27:00', 'gdfgdfgdf', 'Low', 'Accident', 'gdfgdf', 3, 'Pending', '2025-10-11 14:27:15'),
-(22, 'asdasdas', 'csdsadqweqw', '2025-10-11', '14:31:00', 'ddasdasdas', 'Medium', 'Accident', 'fdffsdfds', 3, 'Pending', '2025-10-11 14:32:07'),
-(23, 'queuqwuieuiqwi', 'sfsdfsdfds', '2025-10-11', '14:40:00', 'qweqweqweqw', 'Critical', 'Fire', 'Hernan', 5, 'Resolved', '2025-10-11 14:40:38'),
-(24, 'dhajskdhjka', 'fgfdgdgf', '2025-10-11', '14:43:00', 'dasdsasdas', 'Low', 'Fire', 'John', 5, 'Resolved', '2025-10-11 14:44:22'),
-(25, 'qweqweqw', 'dasdasdas', '2025-10-11', '14:56:00', 'gfdgdfgdf', 'Medium', 'Accident', 'Jayson Decosta', 5, 'Resolved', '2025-10-11 14:56:16'),
-(26, 'incident 1 sample', 'gfdgfdfgd', '2025-10-11', '15:04:00', 'eqweqweqw', 'Medium', 'Accident', 'Anjelly Fusingan', 5, 'Resolved', '2025-10-11 15:05:40');
+INSERT INTO `incident_reports` (`id`, `title`, `description`, `incident_date`, `incident_time`, `location`, `severity_level`, `category`, `reported_by`, `reporter_contact_number`, `organization_id`, `status`, `created_at`) VALUES
+(1, 'Kitchen Fire at Restaurant', 'Small grease fire in the kitchen area of downtown restaurant. Fire was contained quickly but caused smoke damage.', '2024-01-15', '14:30:00', '123 Main Street, Downtown', 'Medium', 'Fire', '5', NULL, 3, 'Resolved', '2025-09-17 05:43:56'),
+(2, 'Traffic Accident on Highway', 'Two-vehicle collision on Interstate 95. Minor injuries reported, vehicles blocking two lanes.', '2024-01-16', '08:45:00', 'Interstate 95, Mile Marker 42', 'High', 'Accident', '0', NULL, 2, 'Resolved', '2025-09-17 05:43:56'),
+(3, 'Patient Fall in Hospital', 'Elderly patient fell in hallway near room 205. No serious injuries but requires medical attention.', '2024-01-17', '10:15:00', 'City General Hospital, 2nd Floor', 'Low', 'Medical', '0', NULL, 1, 'Pending', '2025-09-17 05:43:56'),
+(4, 'Suspicious Activity on Campus', 'Unknown person seen loitering near student dormitories after hours. Security investigation ongoing.', '2024-01-18', '22:30:00', 'University Campus, Dormitory Area', 'Medium', 'Security', '0', NULL, 4, 'Resolved', '2025-09-17 05:43:56'),
+(5, 'Medical Emergency at Mall', 'Person collapsed in food court. CPR administered, ambulance called.', '2024-01-19', '15:20:00', 'City Mall, Food Court', 'High', 'Medical', '5', NULL, 1, 'Resolved', '2025-09-17 05:43:56'),
+(6, 'Car Break-in Incident', 'Multiple vehicles broken into in parking garage. Items stolen from vehicles.', '2024-01-20', '06:00:00', 'Downtown Parking Garage', 'Medium', 'Security', '0', NULL, 2, 'Closed', '2025-09-17 05:43:56'),
+(7, 'dasd', 'fsdf', '2025-09-17', '15:33:00', 'fdsfsd', 'Medium', 'Fire', '0', NULL, 6, 'Pending', '2025-09-17 07:34:08'),
+(8, 'fdsf', 'fsdfdsfds', '2025-09-17', '15:35:00', 'fsdfsd', 'Low', 'Fire', '0', NULL, 6, 'Resolved', '2025-09-17 07:35:34'),
+(9, 'fdsfds', 'fsdfsdfds', '2025-09-18', '17:42:00', 'fsdfsd', 'Low', 'Fire', '0', NULL, 1, 'Resolved', '2025-09-18 09:42:38'),
+(10, 'fsdfsd', 'fsdfds', '2025-09-18', '17:43:00', 'fsdfsd', 'Medium', 'Fire', '0', NULL, 1, 'Resolved', '2025-09-18 09:44:10'),
+(11, 'dfsdf', 'fsdfsdfsd', '2025-09-18', '17:57:00', 'fdsfds', 'Low', 'Fire', '0', NULL, 1, 'Resolved', '2025-09-18 09:57:33'),
+(12, 'gfdgf', 'gfdgfd', '2025-09-18', '17:59:00', 'gfdgf', 'Low', 'Accident', '0', NULL, 1, 'Resolved', '2025-09-18 09:59:24'),
+(13, 'gdfg', 'gdfgdfgfd', '2025-10-07', '18:48:00', 'gfdgf', 'Critical', 'Fire', '0', NULL, 3, 'Resolved', '2025-10-07 10:48:19'),
+(14, 'gfdgdf', 'gdfgfdgfd', '2025-10-07', '19:05:00', 'gfdgdf', 'Critical', 'Security', '0', NULL, 3, 'Resolved', '2025-10-07 11:05:12'),
+(17, 'fsdfsdf', 'fsdfdsfsd', '2025-10-07', '00:44:00', 'fdsfsd', 'Medium', 'Security', '0', NULL, 3, 'Pending', '2025-10-07 16:44:45'),
+(18, 'sfsdfds', 'fsdfsdfsdf', '2025-10-11', '14:15:00', 'fsdfsdfsd', 'Medium', 'Medical', '0', NULL, 3, 'Pending', '2025-10-11 14:23:57'),
+(19, 'sfsdfds', 'fsdfsdfsdf', '2025-10-11', '14:15:00', 'fsdfsdfsd', 'Medium', 'Medical', '0', NULL, 3, 'Pending', '2025-10-11 14:24:04'),
+(20, 'sfsdfds', 'fsdfsdfsdf', '2025-10-11', '14:15:00', 'fsdfsdfsd', 'Medium', 'Medical', 'qweqweqweqw', NULL, 3, 'Pending', '2025-10-11 14:25:16'),
+(21, 'fsfdsfsd', 'gdfgdfgdfgdff', '2025-10-11', '14:27:00', 'gdfgdfgdf', 'Low', 'Accident', 'gdfgdf', NULL, 3, 'Pending', '2025-10-11 14:27:15'),
+(22, 'asdasdas', 'csdsadqweqw', '2025-10-11', '14:31:00', 'ddasdasdas', 'Medium', 'Accident', 'fdffsdfds', NULL, 3, 'Pending', '2025-10-11 14:32:07'),
+(23, 'queuqwuieuiqwi', 'sfsdfsdfds', '2025-10-11', '14:40:00', 'qweqweqweqw', 'Critical', 'Fire', 'Hernan', NULL, 5, 'Resolved', '2025-10-11 14:40:38'),
+(24, 'dhajskdhjka', 'fgfdgdgf', '2025-10-11', '14:43:00', 'dasdsasdas', 'Low', 'Fire', 'John', NULL, 5, 'Resolved', '2025-10-11 14:44:22'),
+(25, 'qweqweqw', 'dasdasdas', '2025-10-11', '14:56:00', 'gfdgdfgdf', 'Medium', 'Accident', 'Jayson Decosta', NULL, 5, 'Resolved', '2025-10-11 14:56:16'),
+(26, 'incident 1 sample', 'gfdgfdfgd', '2025-10-11', '15:04:00', 'eqweqweqw', 'Medium', 'Accident', 'Anjelly Fusingan', NULL, 5, 'Resolved', '2025-10-11 15:05:40'),
+(27, 'fdsfsd', 'fdsfdsfsd', '2025-11-07', '04:09:00', 'fdsfdsf', 'High', 'Accident', 'vxcvcxvcx', NULL, 1, 'Resolved', '2025-11-07 04:09:28'),
+(28, 'TEST', 'FDSFDS', '2025-11-07', '04:51:00', 'FDSFDSFSD', 'High', 'Fire', 'TEST', '09543412639', 1, 'Resolved', '2025-11-07 04:51:43'),
+(29, 'test me pls', 'fgfdgdf', '2025-11-07', '04:58:00', 'gdfgdfgdf', 'High', 'Fire', 'test me pls', '09543412639', 1, 'In Progress', '2025-11-07 04:58:35');
 
 -- --------------------------------------------------------
 
@@ -430,7 +469,7 @@ CREATE TABLE IF NOT EXISTS `incident_updates` (
   PRIMARY KEY (`id`),
   KEY `report_id` (`report_id`),
   KEY `updated_by` (`updated_by`)
-) ENGINE=MyISAM AUTO_INCREMENT=42 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=48 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Dumping data for table `incident_updates`
@@ -477,7 +516,13 @@ INSERT INTO `incident_updates` (`id`, `report_id`, `update_text`, `updated_by`, 
 (38, 24, 'Status changed from \'In Progress\' to \'Resolved\'', 13, '2025-10-11 15:03:45'),
 (39, 25, 'Status changed from \'In Progress\' to \'Resolved\'', 13, '2025-10-11 15:03:51'),
 (40, 26, 'Report approved by organization. Assigned priority number #4. Status set to In Progress.', 13, '2025-10-11 15:07:15'),
-(41, 26, 'Status changed from \'In Progress\' to \'Resolved\'', 13, '2025-10-11 15:07:48');
+(41, 26, 'Status changed from \'In Progress\' to \'Resolved\'', 13, '2025-10-11 15:07:48'),
+(42, 27, 'Report approved by organization. Assigned priority number #5. Status set to In Progress. Assigned to: Cyrus teo.', 2, '2025-11-07 04:10:53'),
+(43, 27, 'Status changed from \'In Progress\' to \'Resolved\'', 2, '2025-11-07 04:13:11'),
+(44, 28, 'Report approved by organization. Assigned priority number #6. Status set to In Progress. Assigned to: Cyrus teo.', 2, '2025-11-07 04:52:15'),
+(45, 28, 'Status changed from \'In Progress\' to \'Resolved\'', 2, '2025-11-07 04:52:37'),
+(46, 28, 'fdsfsdf', 2, '2025-11-07 04:52:49'),
+(47, 29, 'Report approved by organization. Assigned priority number #7. Status set to In Progress. Assigned to: Cyrus teo.', 2, '2025-11-07 04:59:04');
 
 -- --------------------------------------------------------
 
@@ -525,6 +570,8 @@ CREATE TABLE IF NOT EXISTS `organizations` (
   `org_type` enum('Hospital','Police','Fire Department','Security','Emergency Services') NOT NULL,
   `contact_number` varchar(20) DEFAULT NULL,
   `address` text,
+  `latitude` decimal(10,8) DEFAULT NULL,
+  `longitude` decimal(11,8) DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -534,12 +581,42 @@ CREATE TABLE IF NOT EXISTS `organizations` (
 --
 
 INSERT INTO `organizations` (`id`, `org_name`, `org_type`, `contact_number`, `address`, `created_at`) VALUES
-(1, 'City General Hospital', 'Hospital', '09301791258', '123 Medical Center Dr, City, State 12345', '2025-09-17 05:43:56'),
+(1, 'City General Hospital', 'Hospital', '09914996309', '123 Medical Center Dr, City, State 12345', '2025-09-17 05:43:56'),
 (2, 'Metropolitan Police Department', 'Police', '09301791258', '456 Law Enforcement Ave, City, State 12345', '2025-09-17 05:43:56'),
 (3, 'City Fire Department', 'Fire Department', '9603171069', '789 Fire Station Rd, City, State 12345', '2025-09-17 05:43:56'),
 (4, 'University Security', 'Security', '09301791258', '321 Campus Blvd, City, State 12345', '2025-09-17 05:43:56'),
 (5, 'Emergency Medical Services', 'Emergency Services', '09301791258', '654 Emergency Way, City, State 12345', '2025-09-17 05:43:56'),
 (6, 'bvcbcv', 'Hospital', '9301791258', 'fdssd', '2025-09-17 07:15:06');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `organization_members`
+--
+
+DROP TABLE IF EXISTS `organization_members`;
+CREATE TABLE IF NOT EXISTS `organization_members` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `organization_id` int NOT NULL,
+  `user_id` int DEFAULT NULL,
+  `name` varchar(255) NOT NULL,
+  `contact_number` varchar(20) DEFAULT NULL,
+  `email` varchar(191) DEFAULT NULL,
+  `login_username` varchar(191) DEFAULT NULL,
+  `login_password` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_org_members_org` (`organization_id`),
+  KEY `idx_org_members_name` (`name`(250)),
+  KEY `idx_org_members_user` (`user_id`)
+) ENGINE=MyISAM AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `organization_members`
+--
+
+INSERT INTO `organization_members` (`id`, `organization_id`, `name`, `contact_number`, `email`, `created_at`) VALUES
+(1, 1, 'Cyrus teo', '09770372449', 'cyrus@gmail.com', '2025-11-07 04:08:31');
 
 -- --------------------------------------------------------
 
@@ -554,37 +631,42 @@ CREATE TABLE IF NOT EXISTS `report_queue` (
   `organization_id` int NOT NULL,
   `status` enum('Waiting','Approved','Rejected') DEFAULT 'Waiting',
   `priority_number` int DEFAULT NULL,
+  `assigned_to` int DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `approved_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_report_queue_org` (`organization_id`),
   KEY `idx_report_queue_status` (`status`),
-  KEY `idx_report_queue_report` (`report_id`)
-) ENGINE=MyISAM AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+  KEY `idx_report_queue_report` (`report_id`),
+  KEY `idx_report_queue_assigned` (`assigned_to`)
+) ENGINE=MyISAM AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Dumping data for table `report_queue`
 --
 
-INSERT INTO `report_queue` (`id`, `report_id`, `organization_id`, `status`, `priority_number`, `created_at`, `approved_at`) VALUES
-(1, 9, 1, 'Approved', 1, '2025-09-18 09:42:38', '2025-09-18 09:43:08'),
-(2, 10, 1, 'Approved', 2, '2025-09-18 09:44:10', '2025-09-18 09:56:01'),
-(3, 11, 1, 'Approved', 3, '2025-09-18 09:57:33', '2025-09-18 09:57:48'),
-(4, 12, 1, 'Approved', 4, '2025-09-18 09:59:24', '2025-09-18 10:08:17'),
-(5, 13, 3, 'Approved', 1, '2025-10-07 10:48:19', '2025-10-07 10:50:00'),
-(6, 14, 3, 'Approved', 2, '2025-10-07 11:05:12', '2025-10-07 11:05:48'),
-(7, 15, 3, 'Waiting', NULL, '2025-10-07 16:35:52', NULL),
-(8, 16, 3, 'Waiting', NULL, '2025-10-07 16:41:32', NULL),
-(9, 17, 3, 'Waiting', NULL, '2025-10-07 16:44:45', NULL),
-(10, 18, 3, 'Waiting', NULL, '2025-10-11 14:23:57', NULL),
-(11, 19, 3, 'Waiting', NULL, '2025-10-11 14:24:04', NULL),
-(12, 20, 3, 'Waiting', NULL, '2025-10-11 14:25:16', NULL),
-(13, 21, 3, 'Waiting', NULL, '2025-10-11 14:27:15', NULL),
-(14, 22, 3, 'Waiting', NULL, '2025-10-11 14:32:07', NULL),
-(15, 23, 5, 'Approved', 1, '2025-10-11 14:40:38', '2025-10-11 14:44:44'),
-(16, 24, 5, 'Approved', 2, '2025-10-11 14:44:22', '2025-10-11 14:45:52'),
-(17, 25, 5, 'Approved', 3, '2025-10-11 14:56:16', '2025-10-11 14:57:00'),
-(18, 26, 5, 'Approved', 4, '2025-10-11 15:05:40', '2025-10-11 15:07:15');
+INSERT INTO `report_queue` (`id`, `report_id`, `organization_id`, `status`, `priority_number`, `assigned_to`, `created_at`, `approved_at`) VALUES
+(1, 9, 1, 'Approved', 1, NULL, '2025-09-18 09:42:38', '2025-09-18 09:43:08'),
+(2, 10, 1, 'Approved', 2, NULL, '2025-09-18 09:44:10', '2025-09-18 09:56:01'),
+(3, 11, 1, 'Approved', 3, NULL, '2025-09-18 09:57:33', '2025-09-18 09:57:48'),
+(4, 12, 1, 'Approved', 4, NULL, '2025-09-18 09:59:24', '2025-09-18 10:08:17'),
+(5, 13, 3, 'Approved', 1, NULL, '2025-10-07 10:48:19', '2025-10-07 10:50:00'),
+(6, 14, 3, 'Approved', 2, NULL, '2025-10-07 11:05:12', '2025-10-07 11:05:48'),
+(7, 15, 3, 'Waiting', NULL, NULL, '2025-10-07 16:35:52', NULL),
+(8, 16, 3, 'Waiting', NULL, NULL, '2025-10-07 16:41:32', NULL),
+(9, 17, 3, 'Waiting', NULL, NULL, '2025-10-07 16:44:45', NULL),
+(10, 18, 3, 'Waiting', NULL, NULL, '2025-10-11 14:23:57', NULL),
+(11, 19, 3, 'Waiting', NULL, NULL, '2025-10-11 14:24:04', NULL),
+(12, 20, 3, 'Waiting', NULL, NULL, '2025-10-11 14:25:16', NULL),
+(13, 21, 3, 'Waiting', NULL, NULL, '2025-10-11 14:27:15', NULL),
+(14, 22, 3, 'Waiting', NULL, NULL, '2025-10-11 14:32:07', NULL),
+(15, 23, 5, 'Approved', 1, NULL, '2025-10-11 14:40:38', '2025-10-11 14:44:44'),
+(16, 24, 5, 'Approved', 2, NULL, '2025-10-11 14:44:22', '2025-10-11 14:45:52'),
+(17, 25, 5, 'Approved', 3, NULL, '2025-10-11 14:56:16', '2025-10-11 14:57:00'),
+(18, 26, 5, 'Approved', 4, NULL, '2025-10-11 15:05:40', '2025-10-11 15:07:15'),
+(19, 27, 1, 'Approved', 5, 1, '2025-11-07 04:09:28', '2025-11-07 04:10:53'),
+(20, 28, 1, 'Approved', 6, 1, '2025-11-07 04:51:43', '2025-11-07 04:52:15'),
+(21, 29, 1, 'Approved', 7, 1, '2025-11-07 04:58:35', '2025-11-07 04:59:04');
 
 -- --------------------------------------------------------
 
@@ -608,7 +690,7 @@ CREATE TABLE IF NOT EXISTS `sms_settings` (
 --
 
 INSERT INTO `sms_settings` (`id`, `username`, `password`, `is_active`, `created_at`, `updated_at`) VALUES
-(1, '4V2E4G', '8xh5_td3nxvqph', 1, '2025-10-07 08:06:15', '2025-10-07 08:06:18');
+(1, 'E1FRRY', 'johnreydecosta143', 1, '2025-10-07 08:06:15', '2025-11-07 04:50:18');
 
 -- --------------------------------------------------------
 
@@ -622,7 +704,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `name` varchar(255) NOT NULL,
   `email` varchar(191) NOT NULL,
   `password` varchar(255) NOT NULL,
-  `role` enum('Admin','Organization Account','Responder') NOT NULL,
+  `role` enum('Admin','Organization Account','Responder','Organization Member') NOT NULL,
   `organization_id` int DEFAULT NULL,
   `contact_number` varchar(20) DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,

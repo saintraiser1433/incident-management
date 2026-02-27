@@ -44,6 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $severity_level = sanitize_input($_POST['severity_level']);
     $category = sanitize_input($_POST['category']);
     $status = sanitize_input($_POST['status']);
+    $resolution_notes = sanitize_input($_POST['resolution_notes'] ?? '');
     
     if (empty($title) || empty($description) || empty($incident_date) || empty($incident_time) || 
         empty($location) || empty($severity_level) || empty($category) || empty($status)) {
@@ -69,11 +70,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             // Update incident report
             $query = "UPDATE incident_reports SET 
                       title = ?, description = ?, incident_date = ?, incident_time = ?, 
-                      location = ?, severity_level = ?, category = ?, status = ? 
+                      location = ?, severity_level = ?, category = ?, status = ?, resolution_notes = ? 
                       WHERE id = ?";
             $stmt = $db->prepare($query);
-            $stmt->execute([$title, $description, $incident_date, $incident_time, 
-                           $location, $severity_level, $category, $status, $report_id]);
+            $stmt->execute([
+                $title,
+                $description,
+                $incident_date,
+                $incident_time,
+                $location,
+                $severity_level,
+                $category,
+                $status,
+                $resolution_notes ?: null,
+                $report_id
+            ]);
             
             // Add update if status changed
             if ($status != $report['status']) {
@@ -102,11 +113,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             // Log audit
             log_audit('UPDATE', 'incident_reports', $report_id);
             
-            // Send SMS notification for status changes (ONLY to responders, NOT to departments)
+            // Send SMS notification for status changes (ONLY to responders and family contacts, NOT to departments)
             if ($status != $report['status']) {
                 try {
-                    // Get reporter details for SMS notification
-                    $detailsQuery = "SELECT ir.reported_by as reporter_name, ir.reporter_contact_number as reporter_contact, ir.title
+                    // Get reporter and family contact details for SMS notification
+                    $detailsQuery = "SELECT 
+                                        ir.reported_by as reporter_name, 
+                                        ir.reporter_contact_number as reporter_contact, 
+                                        ir.family_contact_name,
+                                        ir.family_contact_number,
+                                        ir.title
                                     FROM incident_reports ir 
                                     WHERE ir.id = ?";
                     $detailsStmt = $db->prepare($detailsQuery);
@@ -123,28 +139,56 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     // Include SMS functionality
                     require_once '../sms.php';
                     
-                    // CRITICAL: Send SMS ONLY to responder (reporter), NEVER to organization
-                    if ($details && !empty($details['reporter_contact'])) {
+                    // CRITICAL: Send SMS ONLY to responder (reporter) and optional family contact, NEVER to organization
+                    if ($details) {
                         $reportTitle = $details['title'] ?? 'Report';
-                        $smsMessage = "MDRRMO-GLAN: Your incident report #{$report_id} '{$reportTitle}' status has been updated to '{$status}'. Please check the system for details.";
-                        
-                        error_log("=== SENDING SMS TO RESPONDER ONLY ===");
-                        error_log("SMS Recipient: RESPONDER - {$details['reporter_contact']}");
-                        error_log("SMS Message: {$smsMessage}");
-                        error_log("CONFIRMATION: This SMS is going to RESPONDER, NOT to organization");
-                        
-                        $smsResult = sendSMS($details['reporter_contact'], $smsMessage);
-                        
-                        if (!$smsResult['success']) {
-                            error_log("SMS notification failed for responder report #{$report_id} status update: " . $smsResult['error']);
+
+                        // To reporter
+                        if (!empty($details['reporter_contact'])) {
+                            $smsMessage = "MDRRMO-GLAN: Your incident report #{$report_id} '{$reportTitle}' status has been updated to '{$status}'. Please check the system for details.";
+                            
+                            error_log("=== SENDING SMS TO RESPONDER ===");
+                            error_log("SMS Recipient: RESPONDER - {$details['reporter_contact']}");
+                            error_log("SMS Message: {$smsMessage}");
+                            
+                            $smsResult = sendSMS($details['reporter_contact'], $smsMessage);
+                            
+                            if (!$smsResult['success']) {
+                                error_log("SMS notification failed for responder report #{$report_id} status update: " . $smsResult['error']);
+                            } else {
+                                error_log("SMS notification sent successfully to RESPONDER for report #{$report_id} status update");
+                            }
                         } else {
-                            error_log("SMS notification sent successfully to RESPONDER for report #{$report_id} status update");
+                            error_log("=== NO SMS SENT - RESPONDER HAS NO CONTACT NUMBER ===");
+                        }
+
+                        // To family contact (only for In Progress and Resolved)
+                        if (!empty($details['family_contact_number']) && in_array($status, ['In Progress', 'Resolved'], true)) {
+                            if ($status === 'In Progress') {
+                                $familyMessage = "MDRRMO-GLAN: Incident '{$reportTitle}' is now being handled (Status: In Progress). Ref #{$report_id}.";
+                            } else { // Resolved
+                                $familyMessage = "MDRRMO-GLAN: Incident '{$reportTitle}' has been resolved. Ref #{$report_id}.";
+                            }
+
+                            error_log("=== SENDING SMS TO FAMILY CONTACT ===");
+                            error_log("SMS Recipient: FAMILY - {$details['family_contact_number']}");
+                            error_log("SMS Message: {$familyMessage}");
+
+                            $familyResult = sendSMS($details['family_contact_number'], $familyMessage);
+                            if (!$familyResult['success']) {
+                                error_log("SMS notification failed for family contact for report #{$report_id}: " . $familyResult['error']);
+                            } else {
+                                error_log("SMS notification sent successfully to FAMILY for report #{$report_id}");
+                            }
+                        } else {
+                            if (empty($details['family_contact_number'])) {
+                                error_log("No family contact number on file for report #{$report_id}.");
+                            } else {
+                                error_log("Family SMS not sent because status '{$status}' is not In Progress/Resolved.");
+                            }
                         }
                     } else {
-                        error_log("=== NO SMS SENT - RESPONDER HAS NO CONTACT NUMBER ===");
-                        error_log("No contact number found for responder of report #{$report_id} - Reporter: " . ($details['reporter_name'] ?? 'Unknown'));
-                        error_log("DEBUG: Details array: " . print_r($details, true));
-                        error_log("IMPORTANT: No SMS will be sent to organization during status change");
+                        error_log("=== NO SMS SENT - REPORT DETAILS NOT FOUND ===");
                     }
                     error_log("=== STATUS CHANGE SMS DEBUG END ===");
                     
@@ -330,6 +374,17 @@ include '../views/header.php';
                             <div class="invalid-feedback">
                                 Please provide the incident location.
                             </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="resolution_notes" class="form-label">Resolution Notes (Optional)</label>
+                            <textarea
+                                class="form-control"
+                                id="resolution_notes"
+                                name="resolution_notes"
+                                rows="3"
+                                placeholder="Summarize how this incident was resolved, actions taken, and any follow-up recommendations."
+                            ><?php echo htmlspecialchars($report['resolution_notes'] ?? ''); ?></textarea>
                         </div>
                         
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end">

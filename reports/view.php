@@ -45,7 +45,7 @@ if (!$report) {
     }
 }
 
-// Handle POST for updates/comments
+// Handle POST for updates/comments/actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     
@@ -77,6 +77,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } catch (Exception $e) {
             error_log("Error adding update: " . $e->getMessage());
         }
+    } else if ($action === 'member_resolve' && !$is_guest_access && isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'Organization Member') {
+        try {
+            $reason = trim($_POST['resolution_reason'] ?? '');
+            if ($reason === '') {
+                $_SESSION['error_message'] = 'Please provide a resolution reason.';
+            } else {
+                // Find the organization_members row linked to this user in this organization
+                $memberStmt = $db->prepare("SELECT id FROM organization_members WHERE user_id = ? AND organization_id = ?");
+                $memberStmt->execute([$_SESSION['user_id'], $report['organization_id']]);
+                $member = $memberStmt->fetch();
+
+                if (!$member) {
+                    $_SESSION['error_message'] = 'You are not recognized as a member of this organization.';
+                } else {
+                    $memberId = (int)$member['id'];
+
+                    // Ensure this member is the assignee for this report
+                    if ((int)($report['assigned_to'] ?? 0) !== $memberId) {
+                        $_SESSION['error_message'] = 'You are not assigned to this report.';
+                    } elseif (!in_array($report['status'], ['Pending', 'In Progress'], true)) {
+                        $_SESSION['error_message'] = 'Only Pending or In Progress reports can be resolved by a member.';
+                    } else {
+                        // Update incident status and resolution notes
+                        $oldStatus = $report['status'];
+                        $upd = $db->prepare("UPDATE incident_reports SET status = 'Resolved', resolution_notes = ? WHERE id = ?");
+                        $upd->execute([$reason, $report_id]);
+
+                        // Log status change in incident_updates
+                        $msg = "Status changed from '{$oldStatus}' to 'Resolved' by assigned member. Resolution reason: " . $reason;
+                        $q = "INSERT INTO incident_updates (report_id, update_text, updated_by) VALUES (?, ?, ?)";
+                        $s = $db->prepare($q);
+                        $s->execute([$report_id, $msg, $_SESSION['user_id']]);
+                        log_audit('CREATE', 'incident_updates', $db->lastInsertId());
+
+                        $_SESSION['success_message'] = 'Issue resolved successfully.';
+                    }
+                }
+            }
+        } catch (Exception $e) {
+            error_log("Error resolving by member: " . $e->getMessage());
+            $_SESSION['error_message'] = 'Failed to resolve the issue. Please try again.';
+        }
+        // Redirect back to avoid form resubmission
+        redirect('reports/view.php?id=' . urlencode($report_id));
     } else if ($action === 'add_comment') {
         try {
             $text = trim($_POST['comment_text'] ?? '');
@@ -130,12 +174,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Check access permissions (skip for guest access)
+$member_can_resolve = false;
+$member_can_view_resolution = false;
 if (!$is_guest_access) {
     if ($_SESSION['user_role'] == 'Organization Account' && $report['organization_id'] != $_SESSION['organization_id']) {
         redirect('index.php?error=access_denied');
     }
-}
 
+    // Determine if current user (Organization Member) is allowed to resolve / view resolution report
+    if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'Organization Member') {
+        try {
+            $memberStmt = $db->prepare("SELECT id FROM organization_members WHERE user_id = ? AND organization_id = ?");
+            $memberStmt->execute([$_SESSION['user_id'], $report['organization_id']]);
+            $member = $memberStmt->fetch();
+            if ($member && (int)$report['assigned_to'] === (int)$member['id']) {
+                if (in_array($report['status'], ['Pending', 'In Progress'], true)) {
+                    $member_can_resolve = true;
+                }
+                if (in_array($report['status'], ['Resolved', 'Closed'], true)) {
+                    $member_can_view_resolution = true;
+                }
+            }
+        } catch (Exception $e) {
+            error_log("Error checking member resolve permission: " . $e->getMessage());
+        }
+    }
+}
 
 // Get photos
 $query = "SELECT * FROM incident_photos WHERE report_id = ? ORDER BY uploaded_at";
@@ -196,11 +260,35 @@ include '../views/header.php';
                                 <i class="fas fa-arrow-left me-1"></i>Back to Reports
                             </a> -->
                         <?php endif; ?>
-                        <?php if (!$is_guest_access && (isset($_SESSION['user_role']) && $_SESSION['user_role'] == 'Admin' || 
-                                  (isset($_SESSION['user_role']) && $_SESSION['user_role'] == 'Organization Account' && $report['organization_id'] == $_SESSION['organization_id']))): ?>
-                        <a href="edit.php?id=<?php echo $report['id']; ?>" class="btn btn-sm btn-outline-primary">
-                            <i class="fas fa-edit me-1"></i>Edit
-                        </a>
+                        <?php if (
+                            !$is_guest_access &&
+                            (
+                                (isset($_SESSION['user_role']) && $_SESSION['user_role'] == 'Admin') ||
+                                (isset($_SESSION['user_role']) && $_SESSION['user_role'] == 'Organization Account' && $report['organization_id'] == $_SESSION['organization_id'])
+                            )
+                        ): ?>
+                            <a href="edit.php?id=<?php echo $report['id']; ?>" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-edit me-1"></i>Edit
+                            </a>
+                            <?php if (in_array($report['status'], ['Resolved', 'Closed'], true)): ?>
+                                <a
+                                    href="resolution_report.php?id=<?php echo $report['id']; ?>"
+                                    class="btn btn-sm btn-success"
+                                    target="_blank"
+                                >
+                                    <i class="fas fa-file-contract me-1"></i>Resolution Report
+                                </a>
+                            <?php endif; ?>
+                        <?php endif; ?>
+
+                        <?php if (!$is_guest_access && $member_can_view_resolution): ?>
+                            <a
+                                href="resolution_report.php?id=<?php echo $report['id']; ?>"
+                                class="btn btn-sm btn-success"
+                                target="_blank"
+                            >
+                                <i class="fas fa-file-contract me-1"></i>Resolution Report
+                            </a>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -319,6 +407,22 @@ include '../views/header.php';
                                 </small>
                             </div>
                         </div>
+
+                    <?php if (!is_null($report['latitude']) && !is_null($report['longitude'])): ?>
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-map-marker-alt me-2"></i>Incident Location Map
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div
+                                id="incident-map-view"
+                                style="height: 320px; border-radius: 0.5rem; overflow: hidden; border: 1px solid rgba(0,0,0,0.1);"
+                            ></div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
                     </div>
 
                     <!-- Photos -->
@@ -384,8 +488,38 @@ include '../views/header.php';
                     <?php endif; ?>
                 </div>
 
-                <!-- Updates and Comments -->
+                <!-- Updates, Resolution, and Comments -->
                 <div class="col-lg-4">
+                    <?php if ($member_can_resolve): ?>
+                    <!-- Member Resolve Card -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="fas fa-check-circle me-2"></i>Resolve This Issue
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <form method="POST">
+                                <input type="hidden" name="action" value="member_resolve">
+                                <div class="mb-3">
+                                    <label for="resolution_reason" class="form-label">Resolution Reason *</label>
+                                    <textarea
+                                        class="form-control"
+                                        id="resolution_reason"
+                                        name="resolution_reason"
+                                        rows="3"
+                                        placeholder="Describe what you did to resolve this issue..."
+                                        required
+                                    ></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="fas fa-check me-1"></i>Mark as Resolved
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
                     <!-- Updates -->
                     <div class="card mb-4">
                         <div class="card-header d-flex justify-content-between align-items-center">
@@ -486,6 +620,32 @@ function openImageModal(imageSrc) {
     document.getElementById('modalImage').src = imageSrc;
     new bootstrap.Modal(document.getElementById('imageModal')).show();
 }
+
+// Static incident map for this report (if coordinates are available)
+document.addEventListener('DOMContentLoaded', function() {
+    var mapContainer = document.getElementById('incident-map-view');
+    if (!mapContainer || typeof L === 'undefined') {
+        return;
+    }
+
+    var lat = <?php echo is_null($report['latitude']) ? 'null' : (float)$report['latitude']; ?>;
+    var lng = <?php echo is_null($report['longitude']) ? 'null' : (float)$report['longitude']; ?>;
+
+    if (lat === null || lng === null) {
+        return;
+    }
+
+    var map = L.map('incident-map-view').setView([lat, lng], 16);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    L.marker([lat, lng]).addTo(map)
+        .bindPopup('<?php echo htmlspecialchars(addslashes($report['title'])); ?>')
+        .openPopup();
+});
 </script>
 
 <?php include '../views/footer.php'; ?>

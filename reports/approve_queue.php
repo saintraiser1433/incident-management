@@ -17,6 +17,11 @@ if ($queue_id <= 0) {
     redirect('reports/organization.php?error=Invalid+queue+item');
 }
 
+// Require assignee for approval
+if ($assigned_to === null) {
+    redirect('reports/organization.php?error=' . urlencode('Please select an assignee before approving.'));
+}
+
 $database = new Database();
 $db = $database->getConnection();
 
@@ -53,14 +58,12 @@ try {
         redirect('reports/organization.php?error=Queue+item+already+processed');
     }
 
-    // Validate assigned member if provided
-    if ($assigned_to !== null) {
-        $memberCheck = $db->prepare("SELECT id FROM organization_members WHERE id = ? AND organization_id = ?");
-        $memberCheck->execute([$assigned_to, $_SESSION['organization_id']]);
-        if (!$memberCheck->fetch()) {
-            $db->rollBack();
-            redirect('reports/organization.php?error=Invalid+member+selected');
-        }
+    // Validate assigned member (required)
+    $memberCheck = $db->prepare("SELECT id FROM organization_members WHERE id = ? AND organization_id = ?");
+    $memberCheck->execute([$assigned_to, $_SESSION['organization_id']]);
+    if (!$memberCheck->fetch()) {
+        $db->rollBack();
+        redirect('reports/organization.php?error=Invalid+member+selected');
     }
 
     // Get next priority number within this organization
@@ -95,11 +98,19 @@ try {
 
     $db->commit();
     
-    // Send SMS notification for approval (ONLY to responders, NOT to departments)
+    // Send SMS notification for approval (ONLY to responders and family contacts, NOT to departments)
     try {
-        // Get responder details for SMS notification
-        $detailsQuery = "SELECT ir.reported_by as reporter_name, ir.reporter_contact_number as reporter_contact,
-                               ir.title, ir.severity_level, ir.organization_id, o.org_name, o.contact_number as org_contact
+        // Get responder and family details for SMS notification
+        $detailsQuery = "SELECT 
+                            ir.reported_by as reporter_name, 
+                            ir.reporter_contact_number as reporter_contact,
+                            ir.family_contact_name,
+                            ir.family_contact_number,
+                            ir.title, 
+                            ir.severity_level, 
+                            ir.organization_id, 
+                            o.org_name, 
+                            o.contact_number as org_contact
                         FROM incident_reports ir 
                         LEFT JOIN organizations o ON ir.organization_id = o.id
                         WHERE ir.id = ?";
@@ -119,8 +130,8 @@ try {
         // Include SMS functionality
         require_once '../sms.php';
         
-        // CRITICAL: Send SMS ONLY to responder (reporter), NEVER to organization
-        if ($details && !empty($details['reporter_contact'])) {
+        // CRITICAL: Send SMS ONLY to responder (reporter) and optional family contact, NEVER to organization
+        if ($details) {
             $smsMessage = "MDRRMO-GLAN: Your incident report #{$queue['report_id']} '{$details['title']}' has been approved and assigned priority #{$next_priority}. Status: In Progress.";
             
             // Add assigned member information to SMS if available
@@ -128,23 +139,42 @@ try {
                 $smsMessage .= " Assigned member {$assignedMemberName} will assist you with this report.";
             }
             
-            error_log("=== SENDING SMS TO RESPONDER ONLY ===");
-            error_log("SMS Recipient: RESPONDER - {$details['reporter_contact']}");
-            error_log("SMS Message: {$smsMessage}");
-            error_log("CONFIRMATION: This SMS is going to RESPONDER, NOT to organization");
-            
-            $smsResult = sendSMS($details['reporter_contact'], $smsMessage);
-            
-            if (!$smsResult['success']) {
-                error_log("SMS notification failed for responder report #{$queue['report_id']} approval: " . $smsResult['error']);
+            // To responder
+            if (!empty($details['reporter_contact'])) {
+                error_log("=== SENDING SMS TO RESPONDER ===");
+                error_log("SMS Recipient: RESPONDER - {$details['reporter_contact']}");
+                error_log("SMS Message: {$smsMessage}");
+                
+                $smsResult = sendSMS($details['reporter_contact'], $smsMessage);
+                
+                if (!$smsResult['success']) {
+                    error_log("SMS notification failed for responder report #{$queue['report_id']} approval: " . $smsResult['error']);
+                } else {
+                    error_log("SMS notification sent successfully to RESPONDER for report #{$queue['report_id']} approval");
+                }
             } else {
-                error_log("SMS notification sent successfully to RESPONDER for report #{$queue['report_id']} approval");
+                error_log("=== NO SMS SENT - RESPONDER HAS NO CONTACT NUMBER ===");
+            }
+
+            // To family contact (In Progress stage)
+            if (!empty($details['family_contact_number'])) {
+                $familyMessage = "MDRRMO-GLAN: Incident '{$details['title']}' is now being handled (Status: In Progress). Ref #{$queue['report_id']}.";
+                
+                error_log("=== SENDING SMS TO FAMILY CONTACT ===");
+                error_log("SMS Recipient: FAMILY - {$details['family_contact_number']}");
+                error_log("SMS Message: {$familyMessage}");
+
+                $familyResult = sendSMS($details['family_contact_number'], $familyMessage);
+                if (!$familyResult['success']) {
+                    error_log("SMS notification failed for family contact for report #{$queue['report_id']} approval: " . $familyResult['error']);
+                } else {
+                    error_log("SMS notification sent successfully to FAMILY for report #{$queue['report_id']} approval");
+                }
+            } else {
+                error_log("No family contact number on file for report #{$queue['report_id']}.");
             }
         } else {
-            error_log("=== NO SMS SENT - RESPONDER HAS NO CONTACT NUMBER ===");
-            error_log("No contact number found for responder of report #{$queue['report_id']} - Reporter: " . ($details['reporter_name'] ?? 'Unknown'));
-            error_log("DEBUG: Details array: " . print_r($details, true));
-            error_log("IMPORTANT: No SMS will be sent to organization during approval");
+            error_log("=== NO SMS SENT - REPORT DETAILS NOT FOUND ===");
         }
         error_log("=== APPROVAL SMS DEBUG END ===");
         

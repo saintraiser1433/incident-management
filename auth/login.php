@@ -55,6 +55,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     case 'Organization Account':
                         redirect('dashboard/organization.php');
                         break;
+                    case 'Organization Member':
+                        // For now, reuse the responder/departments view as member landing page
+                        redirect('dashboard/responder.php');
+                        break;
                     default:
                         redirect('dashboard/index.php');
                 }
