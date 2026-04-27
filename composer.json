@@ -1,5 +1,8 @@
 {
     "require": {
-        "mpdf/mpdf": "^8.2"
+        "mpdf/mpdf": "^8.2",
+        "capcom6/android-sms-gateway": "^2.2",
+        "php-http/curl-client": "^2.4",
+        "guzzlehttp/psr7": "^2.9"
     }
 }
