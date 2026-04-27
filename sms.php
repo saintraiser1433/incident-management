@@ -5,11 +5,7 @@
  */
 
 require_once 'config/database.php';
-require 'vendor/autoload.php';
-
-use AndroidSmsGateway\Client;
-use AndroidSmsGateway\Encryptor;
-use AndroidSmsGateway\Domain\Message;
+require_once __DIR__ . '/vendor/autoload.php';
 
 function sendSMS($number, $message) {
     try {
@@ -63,8 +59,18 @@ function sendSMS($number, $message) {
         
         error_log("SMS Service - Final formatted number: {$number}");
         
-        $client = new Client($sms_settings['username'], $sms_settings['password']);
-        $messageObj = new Message($message, [$number]);
+        $clientClass = '\AndroidSmsGateway\Client';
+        $messageClass = '\AndroidSmsGateway\Domain\Message';
+
+        if (!class_exists($clientClass) || !class_exists($messageClass)) {
+            throw new Exception(
+                'AndroidSmsGateway client library is not installed in /vendor. ' .
+                'Install the matching package in composer.json, then run composer install.'
+            );
+        }
+
+        $client = new $clientClass($sms_settings['username'], $sms_settings['password']);
+        $messageObj = new $messageClass($message, [$number]);
 
         $messageState = $client->Send($messageObj);
         
