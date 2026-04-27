@@ -72,7 +72,7 @@ function sendSMS($number, $message) {
         $client = new $clientClass($sms_settings['username'], $sms_settings['password']);
         $messageObj = new $messageClass($message, [$number]);
 
-        $messageState = $client->Send($messageObj);
+        $messageState = $client->SendMessage($messageObj);
         
         error_log("=== SMS SENT SUCCESSFULLY ===");
         error_log("SMS Service - Final Number Sent To: {$number}");
