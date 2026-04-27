@@ -69,10 +69,42 @@ function sendSMS($number, $message) {
             );
         }
 
-        $client = new $clientClass($sms_settings['username'], $sms_settings['password']);
         $messageObj = new $messageClass($message, [$number]);
+        $messageState = null;
 
-        $messageState = $client->SendMessage($messageObj);
+        try {
+            $client = new $clientClass($sms_settings['username'], $sms_settings['password']);
+            $messageState = $client->SendMessage($messageObj);
+        } catch (Exception $sslException) {
+            // Common on Windows dev stacks when CA bundle is not configured in php.ini.
+            // Retry once with explicit cURL client and disabled SSL verification.
+            if (stripos($sslException->getMessage(), 'SSL certificate problem') === false) {
+                throw $sslException;
+            }
+
+            $curlClientClass = '\Http\Client\Curl\Client';
+            if (!class_exists($curlClientClass)) {
+                throw $sslException;
+            }
+
+            error_log('SMS Service - SSL certificate validation failed; retrying with insecure cURL fallback');
+
+            $insecureHttpClient = new $curlClientClass(
+                null,
+                null,
+                [
+                    CURLOPT_SSL_VERIFYPEER => false,
+                    CURLOPT_SSL_VERIFYHOST => false
+                ]
+            );
+            $client = new $clientClass(
+                $sms_settings['username'],
+                $sms_settings['password'],
+                $clientClass::DEFAULT_URL,
+                $insecureHttpClient
+            );
+            $messageState = $client->SendMessage($messageObj);
+        }
         
         error_log("=== SMS SENT SUCCESSFULLY ===");
         error_log("SMS Service - Final Number Sent To: {$number}");
