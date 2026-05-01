@@ -30,24 +30,22 @@ foreach ($departments as &$dept) {
 ?>
 
 <div class="container-fluid">
-    <div class="row">
+    <div class="row g-0">
         <?php include '../views/sidebar.php'; ?>
-        
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
-            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h1 class="h2">
-                    <i class="fas fa-building me-2"></i>Departments
-                </h1>
-                <div class="btn-toolbar mb-2 mb-md-0">
-                    <div class="btn-group me-2">
-                        <button type="button" class="btn ui-btn-ghost" onclick="toggleView('grid')">
-                            <i class="fas fa-th me-2"></i>Grid View
-                        </button>
-                        <button type="button" class="btn ui-btn-ghost" onclick="toggleView('list')">
-                            <i class="fas fa-list me-2"></i>List View
-                        </button>
-                    </div>
+
+        <main class="col-md-9 ms-sm-auto col-lg-10 main-content">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-5 mb-6 border-b border-slate-200">
+                <div>
+                    <h1 class="text-2xl font-semibold tracking-tight text-slate-900">Departments</h1>
+                    <p class="text-sm text-slate-500 mt-1">Browse departments and file incidents to the right team.</p>
                 </div>
+                <div class="inline-flex rounded-lg border border-slate-300 bg-white p-1">
+                    <button type="button" class="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-slate-700" onclick="toggleView('grid')">
+                        <i class="fas fa-th"></i>Grid
+                    </button>
+                    <button type="button" class="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-slate-500 hover:text-slate-700" onclick="toggleView('list')">
+                        <i class="fas fa-list"></i>List
+                    </button>
             </div>
 
             <div class="row" id="gridView">

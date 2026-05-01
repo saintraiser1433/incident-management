@@ -43,138 +43,113 @@ $page_title = 'Search Ticket - ' . APP_NAME;
 include '../views/header.php';
 ?>
 
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h1 class="h2">
-                    <i class="fas fa-search me-2"></i>Search Ticket
-                </h1>
-                <div class="btn-toolbar mb-2 mb-md-0">
-                    <a href="<?php echo BASE_URL; ?>dashboard/responder.php" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left me-1"></i>Back to Departments
-                    </a>
-                </div>
+<div class="container-fluid main-content">
+    <div class="max-w-5xl mx-auto">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-5 mb-6 border-b border-slate-200">
+            <div>
+                <h1 class="text-2xl font-semibold tracking-tight text-slate-900">Search Ticket</h1>
+                <p class="text-sm text-slate-500 mt-1">Look up the status of your incident report.</p>
             </div>
-            
-            <?php if ($error_message): ?>
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    <?php echo $error_message; ?>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            <?php endif; ?>
-            
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="mb-0">
-                                <i class="fas fa-ticket-alt me-2"></i>Search by Ticket Number
-                            </h5>
-                        </div>
-                        <div class="card-body">
-                            <form method="POST" class="needs-validation" novalidate>
-                                <div class="mb-3">
-                                    <label for="report_id" class="form-label">Ticket Number</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text">#</span>
-                                        <input type="text" class="form-control" id="report_id" name="report_id" 
-                                               value="<?php echo htmlspecialchars($report_id); ?>" 
-                                               placeholder="Enter ticket number" required>
-                                    </div>
-                                    <div class="form-text">Enter the ticket number you received when you submitted your report</div>
-                                </div>
-                                
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-search me-2"></i>Search Ticket
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="mb-0">
-                                <i class="fas fa-info-circle me-2"></i>How to Find Your Ticket
-                            </h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="alert alert-info">
-                                <h6 class="alert-heading">
-                                    <i class="fas fa-lightbulb me-2"></i>Where to find your ticket number:
-                                </h6>
-                                <ul class="mb-0">
-                                    <li>Check your email confirmation (if provided)</li>
-                                    <li>Look at the success page after submitting your report</li>
-                                    <li>Contact the assigned organization directly</li>
-                                    <li>Check any SMS notifications you received</li>
-                                </ul>
-                            </div>
-                            
-                            <div class="alert alert-warning">
-                                <h6 class="alert-heading">
-                                    <i class="fas fa-shield-alt me-2"></i>Privacy Notice:
-                                </h6>
-                                <p class="mb-0">
-                                    You can only view tickets that you have the ticket number for. 
-                                    This ensures your privacy and the security of incident reports.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <?php if ($report): ?>
-                <div class="row mt-4">
-                    <div class="col-12">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5 class="mb-0">
-                                    <i class="fas fa-file-alt me-2"></i>Ticket #<?php echo $report['id']; ?>
-                                </h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-8">
-                                        <h4><?php echo htmlspecialchars($report['title']); ?></h4>
-                                        <p class="text-muted"><?php echo htmlspecialchars($report['description']); ?></p>
-                                        
-                                        <div class="row">
-                                            <div class="col-sm-6">
-                                                <strong>Status:</strong>
-                                                <?php
-                                                $status_badges = [
-                                                    'Pending' => 'bg-warning',
-                                                    'In Progress' => 'bg-info',
-                                                    'Resolved' => 'bg-success',
-                                                    'Closed' => 'bg-secondary'
-                                                ];
-                                                $badge_class = $status_badges[$report['status']] ?? 'bg-secondary';
-                                                ?>
-                                                <span class="badge <?php echo $badge_class; ?>"><?php echo $report['status']; ?></span>
-                                            </div>
-                                            <div class="col-sm-6">
-                                                <strong>Assigned To:</strong>
-                                                <?php echo htmlspecialchars($report['org_name']); ?>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4 text-end">
-                                        <a href="view.php?id=<?php echo $report['id']; ?>&guest=1" class="btn btn-primary btn-lg">
-                                            <i class="fas fa-eye me-2"></i>View Full Details
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            <?php endif; ?>
+            <a href="<?php echo BASE_URL; ?>dashboard/responder.php" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition">
+                <i class="fas fa-arrow-left text-slate-400"></i>Back to Departments
+            </a>
         </div>
+
+        <?php if ($error_message): ?>
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <?php echo $error_message; ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        <?php endif; ?>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="card">
+                <div class="card-header flex items-center gap-2">
+                    <i class="fas fa-ticket-alt text-slate-400"></i>
+                    <span>Search by Ticket Number</span>
+                </div>
+                <div class="card-body">
+                    <form method="POST" class="needs-validation space-y-4" novalidate>
+                        <div>
+                            <label for="report_id" class="form-label">Ticket Number</label>
+                            <div class="input-group">
+                                <span class="input-group-text">#</span>
+                                <input type="text" class="form-control" id="report_id" name="report_id"
+                                       value="<?php echo htmlspecialchars($report_id); ?>"
+                                       placeholder="Enter ticket number" required>
+                            </div>
+                            <div class="form-text">Enter the ticket number you received when you submitted your report.</div>
+                        </div>
+
+                        <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 transition">
+                            <i class="fas fa-search"></i>Search Ticket
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header flex items-center gap-2">
+                    <i class="fas fa-info-circle text-slate-400"></i>
+                    <span>How to Find Your Ticket</span>
+                </div>
+                <div class="card-body space-y-3">
+                    <div class="alert alert-info mb-0">
+                        <p class="text-sm font-medium mb-1"><i class="fas fa-lightbulb me-1"></i>Where to find your ticket number:</p>
+                        <ul class="text-sm list-disc list-inside space-y-0.5 mb-0">
+                            <li>Check your email confirmation (if provided)</li>
+                            <li>Look at the success page after submitting your report</li>
+                            <li>Contact the assigned organization directly</li>
+                            <li>Check any SMS notifications you received</li>
+                        </ul>
+                    </div>
+
+                    <div class="alert alert-warning mb-0">
+                        <p class="text-sm font-medium mb-1"><i class="fas fa-shield-alt me-1"></i>Privacy Notice:</p>
+                        <p class="text-sm mb-0">You can only view tickets that you have the ticket number for. This ensures your privacy and the security of incident reports.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <?php if ($report): ?>
+            <div class="card mt-6">
+                <div class="card-header flex items-center gap-2">
+                    <i class="fas fa-file-alt text-slate-400"></i>
+                    <span>Ticket #<?php echo $report['id']; ?></span>
+                </div>
+                <div class="card-body">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
+                        <div class="md:col-span-2">
+                            <h4 class="text-lg font-semibold text-slate-900"><?php echo htmlspecialchars($report['title']); ?></h4>
+                            <p class="text-sm text-slate-600 mt-2"><?php echo htmlspecialchars($report['description']); ?></p>
+                            <dl class="mt-4 grid grid-cols-2 gap-3 text-sm">
+                                <div>
+                                    <dt class="text-xs uppercase tracking-wider text-slate-500 font-medium">Status</dt>
+                                    <dd class="mt-1">
+                                        <?php
+                                        $status_badges = ['Pending' => 'bg-warning', 'In Progress' => 'bg-info', 'Resolved' => 'bg-success', 'Closed' => 'bg-secondary'];
+                                        $badge_class = $status_badges[$report['status']] ?? 'bg-secondary';
+                                        ?>
+                                        <span class="badge <?php echo $badge_class; ?>"><?php echo $report['status']; ?></span>
+                                    </dd>
+                                </div>
+                                <div>
+                                    <dt class="text-xs uppercase tracking-wider text-slate-500 font-medium">Assigned To</dt>
+                                    <dd class="mt-1 text-slate-900"><?php echo htmlspecialchars($report['org_name']); ?></dd>
+                                </div>
+                            </dl>
+                        </div>
+                        <div class="md:text-right">
+                            <a href="view.php?id=<?php echo $report['id']; ?>&guest=1" class="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 transition">
+                                <i class="fas fa-eye"></i>View Full Details
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
     </div>
 </div>
 

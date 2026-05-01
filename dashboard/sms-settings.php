@@ -66,16 +66,17 @@ try {
 ?>
 
 <div class="container-fluid">
-    <div class="row">
+    <div class="row g-0">
         <?php include '../views/sidebar.php'; ?>
-        
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
-            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h1 class="h2">
-                    <i class="fas fa-sms me-2"></i>SMS Settings
-                </h1>
+
+        <main class="col-md-9 ms-sm-auto col-lg-10 main-content">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-5 mb-6 border-b border-slate-200">
+                <div>
+                    <h1 class="text-2xl font-semibold tracking-tight text-slate-900">SMS Settings</h1>
+                    <p class="text-sm text-slate-500 mt-1">Configure the gateway used for outbound notifications.</p>
+                </div>
             </div>
-            
+
             <?php if ($success_message): ?>
                 <div class="alert alert-success alert-dismissible fade show" role="alert">
                     <i class="fas fa-check-circle me-2"></i>
@@ -83,7 +84,7 @@ try {
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             <?php endif; ?>
-            
+
             <?php if ($error_message): ?>
                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
                     <i class="fas fa-exclamation-triangle me-2"></i>
@@ -91,61 +92,58 @@ try {
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             <?php endif; ?>
-            
-            <!-- SMS Settings Form -->
-            <div class="card">
-                <div class="card-header">
-                    <h6 class="mb-0">
-                        <i class="fas fa-cog me-2"></i>SMS Gateway Configuration
-                    </h6>
-                </div>
-                <div class="card-body">
-                    <form method="POST">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="username" class="form-label">SMS Gateway Username *</label>
-                                <input type="text" class="form-control" id="username" name="username" 
-                                       value="<?php echo htmlspecialchars($sms_settings['username'] ?? ''); ?>" required>
-                                <div class="form-text">Enter your SMS gateway username</div>
-                            </div>
-                            
-                            <div class="col-md-6 mb-3">
-                                <label for="password" class="form-label">SMS Gateway Password *</label>
-                                <div class="input-group">
-                                    <input type="password" class="form-control" id="password" name="password" 
-                                           value="<?php echo htmlspecialchars($sms_settings['password'] ?? ''); ?>" required>
-                                    <button class="btn btn-outline-secondary" type="button" id="togglePassword">
-                                        <i class="fas fa-eye" id="togglePasswordIcon"></i>
-                                    </button>
+
+            <div class="max-w-3xl">
+                <!-- SMS Settings Form -->
+                <div class="card">
+                    <div class="card-header flex items-center gap-2">
+                        <i class="fas fa-cog text-slate-400"></i>
+                        <span>SMS Gateway Configuration</span>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" class="space-y-5">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label for="username" class="form-label">SMS Gateway Username <span class="text-red-500">*</span></label>
+                                    <input type="text" class="form-control" id="username" name="username"
+                                           value="<?php echo htmlspecialchars($sms_settings['username'] ?? ''); ?>" required>
+                                    <div class="form-text">Enter your SMS gateway username</div>
                                 </div>
-                                <div class="form-text">Enter your SMS gateway password</div>
+
+                                <div>
+                                    <label for="password" class="form-label">SMS Gateway Password <span class="text-red-500">*</span></label>
+                                    <div class="input-group">
+                                        <input type="password" class="form-control" id="password" name="password"
+                                               value="<?php echo htmlspecialchars($sms_settings['password'] ?? ''); ?>" required>
+                                        <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                            <i class="fas fa-eye" id="togglePasswordIcon"></i>
+                                        </button>
+                                    </div>
+                                    <div class="form-text">Enter your SMS gateway password</div>
+                                </div>
                             </div>
-                        </div>
-                        
-                        <div class="row">
-                            <div class="col-12 mb-3">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="is_active" name="is_active" 
-                                           <?php echo ($sms_settings['is_active'] ?? 0) ? 'checked' : ''; ?>>
-                                    <label class="form-check-label" for="is_active">
+
+                            <div class="flex items-start gap-3 p-3 rounded-lg border border-slate-200 bg-slate-50">
+                                <input class="form-check-input mt-0.5" type="checkbox" id="is_active" name="is_active"
+                                       <?php echo ($sms_settings['is_active'] ?? 0) ? 'checked' : ''; ?>>
+                                <div>
+                                    <label class="form-check-label text-sm font-medium text-slate-900" for="is_active">
                                         Enable SMS Notifications
                                     </label>
-                                    <div class="form-text">When enabled, SMS notifications will be sent for incident reports and updates</div>
+                                    <div class="text-xs text-slate-500 mt-0.5">When enabled, SMS notifications will be sent for incident reports and updates.</div>
                                 </div>
                             </div>
-                        </div>
-                        
-                        <div class="row">
-                            <div class="col-12">
-                                <button type="submit" class="btn ui-btn-primary">
-                                    <i class="fas fa-save me-2"></i>Save SMS Settings
+
+                            <div class="flex items-center gap-2 pt-2">
+                                <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 transition">
+                                    <i class="fas fa-save"></i>Save Settings
                                 </button>
-                                <button type="button" class="btn ui-btn-ghost ms-2" onclick="testSMS()">
-                                    <i class="fas fa-paper-plane me-2"></i>Test SMS
+                                <button type="button" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition" onclick="testSMS()">
+                                    <i class="fas fa-paper-plane text-slate-400"></i>Test SMS
                                 </button>
                             </div>
-                        </div>
-                    </form>
+                        </form>
+                    </div>
                 </div>
             </div>
             

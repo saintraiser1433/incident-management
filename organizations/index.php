@@ -45,8 +45,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $longitude !== '' ? $longitude : null
                 ]);
                 
-                log_audit('CREATE', 'organizations', $db->lastInsertId());
+                $newOrgId = (int) $db->lastInsertId();
+                log_audit('CREATE', 'organizations', $newOrgId);
                 $success_message = 'Organization created successfully!';
+
+                $logoResult = save_organization_logo_upload($newOrgId);
+                if (!empty($logoResult['error'])) {
+                    $error_message = 'Logo could not be saved: ' . $logoResult['error'];
+                } elseif (!empty($logoResult['path'])) {
+                    $logoStmt = $db->prepare('UPDATE organizations SET logo_path = ? WHERE id = ?');
+                    $logoStmt->execute([$logoResult['path'], $newOrgId]);
+                }
             } catch (Exception $e) {
                 $error_message = 'Error creating organization: ' . $e->getMessage();
             }
@@ -66,6 +75,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $error_message = 'Contact number must be a valid Philippine mobile number (format: 09XXXXXXXXX).';
         } else {
             try {
+                $prevLogoStmt = $db->prepare('SELECT logo_path FROM organizations WHERE id = ?');
+                $prevLogoStmt->execute([$id]);
+                $prevLogoPath = $prevLogoStmt->fetchColumn() ?: null;
+
                 $query = "UPDATE organizations SET org_name = ?, org_type = ?, contact_number = ?, address = ?, latitude = ?, longitude = ? WHERE id = ?";
                 $stmt = $db->prepare($query);
                 $stmt->execute([
@@ -77,9 +90,28 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $longitude !== '' ? $longitude : null,
                     $id
                 ]);
-                
+
+                $removeLogo = !empty($_POST['remove_logo']);
+                if ($removeLogo) {
+                    delete_organization_logo_disk($prevLogoPath);
+                    $clr = $db->prepare('UPDATE organizations SET logo_path = NULL WHERE id = ?');
+                    $clr->execute([$id]);
+                } else {
+                    $logoResult = save_organization_logo_upload((int) $id);
+                    if (!empty($logoResult['error'])) {
+                        $error_message = 'Logo could not be saved: ' . $logoResult['error'];
+                    } elseif (!empty($logoResult['path'])) {
+                        $logoStmt = $db->prepare('UPDATE organizations SET logo_path = ? WHERE id = ?');
+                        $logoStmt->execute([$logoResult['path'], $id]);
+                    }
+                }
+
                 log_audit('UPDATE', 'organizations', $id);
-                $success_message = 'Organization updated successfully!';
+                if (empty($error_message)) {
+                    $success_message = 'Organization updated successfully!';
+                } else {
+                    $success_message = 'Organization details saved.';
+                }
             } catch (Exception $e) {
                 $error_message = 'Error updating organization: ' . $e->getMessage();
             }
@@ -102,6 +134,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             if ($user_count > 0 || $report_count > 0) {
                 $error_message = 'Cannot delete organization with existing users or reports.';
             } else {
+                $lpStmt = $db->prepare('SELECT logo_path FROM organizations WHERE id = ?');
+                $lpStmt->execute([$id]);
+                $delLogo = $lpStmt->fetchColumn();
+                if (!empty($delLogo)) {
+                    delete_organization_logo_disk($delLogo);
+                }
+
                 $query = "DELETE FROM organizations WHERE id = ?";
                 $stmt = $db->prepare($query);
                 $stmt->execute([$id]);
@@ -164,23 +203,18 @@ $organizations = $stmt->fetchAll();
 ?>
 
 <div class="container-fluid">
-    <div class="row">
+    <div class="row g-0">
         <?php include '../views/sidebar.php'; ?>
 
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
-            <div
-                class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h1 class="h2">
-                    <i class="fas fa-building me-2"></i>Organizations
-                </h1>
-                <div class="btn-toolbar mb-2 mb-md-0">
-                    <div class="btn-group me-2">
-                        <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal"
-                            data-bs-target="#createModal">
-                            <i class="fas fa-plus me-1"></i>Add Organization
-                        </button>
-                    </div>
+        <main class="col-md-9 ms-sm-auto col-lg-10 main-content">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-5 mb-6 border-b border-slate-200">
+                <div>
+                    <h1 class="text-2xl font-semibold tracking-tight text-slate-900">Organizations</h1>
+                    <p class="text-sm text-slate-500 mt-1">Manage partner agencies, hospitals, and response teams.</p>
                 </div>
+                <button type="button" class="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 transition" data-bs-toggle="modal" data-bs-target="#createModal">
+                    <i class="fas fa-plus"></i>Add Organization
+                </button>
             </div>
 
             <?php if ($success_message): ?>
@@ -256,6 +290,7 @@ $organizations = $stmt->fetchAll();
                             <thead>
                                 <tr>
                                     <th>ID</th>
+                                    <th>Logo</th>
                                     <th>Name</th>
                                     <th>Type</th>
                                     <th>Contact</th>
@@ -269,6 +304,13 @@ $organizations = $stmt->fetchAll();
                                 <?php foreach ($organizations as $org): ?>
                                 <tr>
                                     <td>#<?php echo $org['id']; ?></td>
+                                    <td>
+                                        <?php if (!empty($org['logo_path'] ?? null)): ?>
+                                            <img src="<?php echo htmlspecialchars(BASE_URL . ($org['logo_path'] ?? '')); ?>" alt="" width="40" height="40" class="rounded-lg border border-slate-200 object-contain bg-white" style="max-height:40px">
+                                        <?php else: ?>
+                                            <span class="text-muted small">—</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td>
                                         <strong><?php echo htmlspecialchars($org['org_name']); ?></strong>
                                         <?php if ($org['address']): ?>
@@ -387,7 +429,7 @@ $organizations = $stmt->fetchAll();
 <div class="modal fade" id="createModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form method="POST">
+            <form method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="action" value="create">
                 <div class="modal-header">
                     <h5 class="modal-title">Add New Organization</h5>
@@ -422,6 +464,11 @@ $organizations = $stmt->fetchAll();
                         <textarea class="form-control" id="address" name="address" rows="3"></textarea>
                     </div>
                     <div class="mb-3">
+                        <label for="org_logo_create" class="form-label">Organization logo (optional)</label>
+                        <input type="file" class="form-control" id="org_logo_create" name="org_logo" accept="image/jpeg,image/png,image/webp,image/gif">
+                        <div class="form-text">JPEG, PNG, WebP, or GIF. Max <?php echo ORG_LOGO_MAX_BYTES / 1024 / 1024; ?>MB. Shown on the organization dashboard and sidebar.</div>
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label">
                             <i class="fas fa-map-marker-alt me-1"></i>Pin Organization Location on Map (Optional)
                         </label>
@@ -446,7 +493,7 @@ $organizations = $stmt->fetchAll();
 <div class="modal fade" id="editModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form method="POST">
+            <form method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="action" value="update">
                 <input type="hidden" name="id" id="edit_id">
                 <div class="modal-header">
@@ -480,6 +527,18 @@ $organizations = $stmt->fetchAll();
                     <div class="mb-3">
                         <label for="edit_address" class="form-label">Address</label>
                         <textarea class="form-control" id="edit_address" name="address" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Organization logo</label>
+                        <div id="edit_logo_preview_wrap" class="mb-2 hidden">
+                            <img id="edit_logo_preview" src="" alt="Current logo" class="rounded-lg border border-slate-200 bg-white p-1" style="max-height: 72px; max-width: 160px; object-fit: contain;">
+                        </div>
+                        <input type="file" class="form-control" id="org_logo_edit" name="org_logo" accept="image/jpeg,image/png,image/webp,image/gif">
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" name="remove_logo" id="edit_remove_logo" value="1">
+                            <label class="form-check-label" for="edit_remove_logo">Remove current logo</label>
+                        </div>
+                        <div class="form-text">JPEG, PNG, WebP, or GIF. Max <?php echo ORG_LOGO_MAX_BYTES / 1024 / 1024; ?>MB.</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">
@@ -527,6 +586,8 @@ $organizations = $stmt->fetchAll();
 </div>
 
 <script>
+window.APP_BASE_URL = <?php echo json_encode(BASE_URL); ?>;
+
 function initOrgMap(mapElementId, latInputId, lngInputId, initialLat, initialLng) {
     const el = document.getElementById(mapElementId);
     const latInput = document.getElementById(latInputId);
@@ -580,6 +641,18 @@ function editOrganization(org) {
     document.getElementById('edit_address').value = org.address || '';
     document.getElementById('edit_latitude').value = org.latitude !== null ? org.latitude : '';
     document.getElementById('edit_longitude').value = org.longitude !== null ? org.longitude : '';
+    document.getElementById('edit_remove_logo').checked = false;
+    document.getElementById('org_logo_edit').value = '';
+
+    var wrap = document.getElementById('edit_logo_preview_wrap');
+    var img = document.getElementById('edit_logo_preview');
+    if (org.logo_path) {
+        img.src = window.APP_BASE_URL + org.logo_path;
+        wrap.classList.remove('hidden');
+    } else {
+        img.removeAttribute('src');
+        wrap.classList.add('hidden');
+    }
 
     const modalEl = document.getElementById('editModal');
     const modal = new bootstrap.Modal(modalEl);

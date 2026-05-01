@@ -218,23 +218,20 @@ include '../views/header.php';
 ?>
 
 <div class="container-fluid">
-    <div class="row">
+    <div class="row g-0">
         <?php include '../views/sidebar.php'; ?>
-        
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
-            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h1 class="h2">
-                    <i class="fas fa-edit me-2"></i>Edit Report #<?php echo $report['id']; ?>
-                </h1>
-                <div class="btn-toolbar mb-2 mb-md-0">
-                    <div class="btn-group me-2">
-                        <a href="view.php?id=<?php echo $report['id']; ?>" class="btn btn-sm btn-outline-secondary">
-                            <i class="fas fa-eye me-1"></i>View Report
-                        </a>
-                    </div>
+
+        <main class="col-md-9 ms-sm-auto col-lg-10 main-content">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-5 mb-6 border-b border-slate-200">
+                <div>
+                    <h1 class="text-2xl font-semibold tracking-tight text-slate-900">Edit Report <span class="text-slate-400 font-mono">#<?php echo $report['id']; ?></span></h1>
+                    <p class="text-sm text-slate-500 mt-1">Update incident details and assignment.</p>
                 </div>
+                <a href="view.php?id=<?php echo $report['id']; ?>" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition">
+                    <i class="fas fa-eye text-slate-400"></i>View Report
+                </a>
             </div>
-            
+
             <?php if ($success_message): ?>
                 <div class="alert alert-success alert-dismissible fade show" role="alert">
                     <i class="fas fa-check-circle me-2"></i>
@@ -242,7 +239,7 @@ include '../views/header.php';
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             <?php endif; ?>
-            
+
             <?php if ($error_message): ?>
                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
                     <i class="fas fa-exclamation-triangle me-2"></i>
@@ -250,12 +247,11 @@ include '../views/header.php';
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             <?php endif; ?>
-            
+
             <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-file-alt me-2"></i>Report Details
-                    </h5>
+                <div class="card-header flex items-center gap-2">
+                    <i class="fas fa-file-alt text-slate-400"></i>
+                    <span>Report Details</span>
                 </div>
                 <div class="card-body">
                     <form method="POST" class="needs-validation" novalidate>
@@ -387,12 +383,12 @@ include '../views/header.php';
                             ><?php echo htmlspecialchars($report['resolution_notes'] ?? ''); ?></textarea>
                         </div>
                         
-                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                            <a href="view.php?id=<?php echo $report['id']; ?>" class="btn btn-secondary me-md-2">
-                                <i class="fas fa-times me-1"></i>Cancel
+                        <div class="flex flex-col sm:flex-row sm:justify-end gap-2 pt-2">
+                            <a href="view.php?id=<?php echo $report['id']; ?>" class="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition">
+                                <i class="fas fa-times text-slate-400"></i>Cancel
                             </a>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save me-1"></i>Update Report
+                            <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 transition">
+                                <i class="fas fa-save"></i>Update Report
                             </button>
                         </div>
                     </form>

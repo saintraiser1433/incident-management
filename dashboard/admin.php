@@ -75,109 +75,66 @@ $monthly_trends = $stmt->fetchAll();
 ?>
 
 <div class="container-fluid">
-    <div class="row">
+    <div class="row g-0">
         <?php include '../views/sidebar.php'; ?>
 
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
-            <div
-                class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h1 class="h2">
-                    <i class="fas fa-tachometer-alt me-2"></i>Admin Dashboard
-                </h1>
-
+        <main class="col-md-9 ms-sm-auto col-lg-10 main-content">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-5 mb-6 border-b border-slate-200">
+                <div>
+                    <h1 class="text-2xl font-semibold tracking-tight text-slate-900">Admin Dashboard</h1>
+                    <p class="text-sm text-slate-500 mt-1">Overview of incidents across all organizations.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <a href="../reports/index.php" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition">
+                        <i class="fas fa-file-alt text-slate-400"></i>View all reports
+                    </a>
+                </div>
             </div>
 
             <!-- Statistics Cards -->
-            <div class="row mb-4">
-                <div class="col-xl-3 col-md-6 mb-4">
-                    <div class="card border-left-primary shadow h-100 py-2">
-                        <div class="card-body">
-                            <div class="row no-gutters align-items-center">
-                                <div class="col mr-2">
-                                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                        Total Reports
-                                    </div>
-                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                        <?php echo $stats['total_reports']; ?>
-                                    </div>
-                                </div>
-                                <div class="col-auto">
-                                    <i class="fas fa-file-alt fa-2x text-gray-300"></i>
-                                </div>
-                            </div>
-                        </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+                <div class="stat-card flex items-start justify-between">
+                    <div>
+                        <div class="stat-label">Total Reports</div>
+                        <div class="stat-value"><?php echo $stats['total_reports']; ?></div>
                     </div>
+                    <span class="stat-icon bg-slate-100 text-slate-700"><i class="fas fa-file-alt"></i></span>
                 </div>
 
-                <div class="col-xl-3 col-md-6 mb-4">
-                    <div class="card border-left-warning shadow h-100 py-2">
-                        <div class="card-body">
-                            <div class="row no-gutters align-items-center">
-                                <div class="col mr-2">
-                                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                        Pending Reports
-                                    </div>
-                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                        <?php echo $stats['status_counts']['Pending'] ?? 0; ?>
-                                    </div>
-                                </div>
-                                <div class="col-auto">
-                                    <i class="fas fa-clock fa-2x text-gray-300"></i>
-                                </div>
-                            </div>
-                        </div>
+                <div class="stat-card flex items-start justify-between">
+                    <div>
+                        <div class="stat-label">Pending Reports</div>
+                        <div class="stat-value"><?php echo $stats['status_counts']['Pending'] ?? 0; ?></div>
                     </div>
+                    <span class="stat-icon bg-amber-50 text-amber-600"><i class="fas fa-clock"></i></span>
                 </div>
 
-                <div class="col-xl-3 col-md-6 mb-4">
-                    <div class="card border-left-danger shadow h-100 py-2">
-                        <div class="card-body">
-                            <div class="row no-gutters align-items-center">
-                                <div class="col mr-2">
-                                    <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
-                                        High/Critical Severity
-                                    </div>
-                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                        <?php echo ($stats['severity_counts']['High'] ?? 0) + ($stats['severity_counts']['Critical'] ?? 0); ?>
-                                    </div>
-                                </div>
-                                <div class="col-auto">
-                                    <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
-                                </div>
-                            </div>
-                        </div>
+                <div class="stat-card flex items-start justify-between">
+                    <div>
+                        <div class="stat-label">High / Critical</div>
+                        <div class="stat-value"><?php echo ($stats['severity_counts']['High'] ?? 0) + ($stats['severity_counts']['Critical'] ?? 0); ?></div>
                     </div>
+                    <span class="stat-icon bg-red-50 text-red-600"><i class="fas fa-exclamation-triangle"></i></span>
                 </div>
 
-                <div class="col-xl-3 col-md-6 mb-4">
-                    <div class="card border-left-success shadow h-100 py-2">
-                        <div class="card-body">
-                            <div class="row no-gutters align-items-center">
-                                <div class="col mr-2">
-                                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                        Resolved Reports
-                                    </div>
-                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                        <?php echo $stats['status_counts']['Resolved'] ?? 0; ?>
-                                    </div>
-                                </div>
-                                <div class="col-auto">
-                                    <i class="fas fa-check-circle fa-2x text-gray-300"></i>
-                                </div>
-                            </div>
-                        </div>
+                <div class="stat-card flex items-start justify-between">
+                    <div>
+                        <div class="stat-label">Resolved Reports</div>
+                        <div class="stat-value"><?php echo $stats['status_counts']['Resolved'] ?? 0; ?></div>
                     </div>
+                    <span class="stat-icon bg-emerald-50 text-emerald-600"><i class="fas fa-check-circle"></i></span>
                 </div>
             </div>
 
-            <div class="row">
-                <!-- Charts -->
-                <div class="col-lg-8">
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h6 class="mb-0">
-                                <i class="fas fa-chart-line me-2"></i>Monthly Trends
-                            </h6>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div class="lg:col-span-2 space-y-4">
+                    <div class="card">
+                        <div class="card-header flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-chart-line text-slate-400"></i>
+                                <span>Monthly Trends</span>
+                            </div>
+                            <span class="text-xs text-slate-500">Last 6 months</span>
                         </div>
                         <div class="card-body">
                             <canvas id="monthlyTrendsChart" height="100"></canvas>
@@ -185,10 +142,9 @@ $monthly_trends = $stmt->fetchAll();
                     </div>
 
                     <div class="card">
-                        <div class="card-header">
-                            <h6 class="mb-0">
-                                <i class="fas fa-chart-pie me-2"></i>Reports by Category
-                            </h6>
+                        <div class="card-header flex items-center gap-2">
+                            <i class="fas fa-chart-pie text-slate-400"></i>
+                            <span>Reports by Category</span>
                         </div>
                         <div class="card-body">
                             <canvas id="categoryChart" height="100"></canvas>
@@ -196,86 +152,70 @@ $monthly_trends = $stmt->fetchAll();
                     </div>
                 </div>
 
-                <!-- Organization Rankings -->
-                <div class="col-lg-4">
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h6 class="mb-0">
-                                <i class="fas fa-trophy me-2"></i>Organization Rankings
-                            </h6>
+                <div class="space-y-4">
+                    <div class="card">
+                        <div class="card-header flex items-center gap-2">
+                            <i class="fas fa-trophy text-slate-400"></i>
+                            <span>Organization Rankings</span>
                         </div>
                         <div class="card-body">
-                            <?php foreach ($org_counts as $index => $org): ?>
-                            <div class="d-flex align-items-center mb-3">
-                                <div class="flex-shrink-0">
-                                    <span class="badge bg-primary rounded-circle"
-                                        style="width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">
+                            <ul class="space-y-3">
+                                <?php foreach ($org_counts as $index => $org): ?>
+                                <li class="flex items-center gap-3">
+                                    <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-white text-xs font-semibold">
                                         <?php echo $index + 1; ?>
                                     </span>
-                                </div>
-                                <div class="flex-grow-1 ms-3">
-                                    <div class="fw-bold"><?php echo htmlspecialchars($org['org_name']); ?></div>
-                                    <div class="text-muted small"><?php echo $org['count']; ?> reports</div>
-                                </div>
-                            </div>
-                            <?php endforeach; ?>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm font-medium text-slate-900 truncate"><?php echo htmlspecialchars($org['org_name'] ?? ''); ?></p>
+                                        <p class="text-xs text-slate-500"><?php echo $org['count']; ?> reports</p>
+                                    </div>
+                                </li>
+                                <?php endforeach; ?>
+                            </ul>
                         </div>
                     </div>
 
-                    <!-- Recent Reports -->
                     <div class="card">
-                        <div class="card-header">
-                            <h6 class="mb-0">
-                                <i class="fas fa-clock me-2"></i>Recent Reports
-                            </h6>
+                        <div class="card-header flex items-center gap-2">
+                            <i class="fas fa-clock text-slate-400"></i>
+                            <span>Recent Reports</span>
                         </div>
                         <div class="card-body">
-                            <?php foreach ($recent_reports as $report): ?>
-                            <div class="d-flex align-items-start mb-3">
-                                <div class="flex-shrink-0 me-2">
-                                    <?php
-                                        $icon_class = '';
-                                        switch ($report['category']) {
-                                            case 'Fire':
-                                                $icon_class = 'fas fa-fire text-danger';
-                                                break;
-                                            case 'Accident':
-                                                $icon_class = 'fas fa-car-crash text-warning';
-                                                break;
-                                            case 'Security':
-                                                $icon_class = 'fas fa-shield-alt text-info';
-                                                break;
-                                            case 'Medical':
-                                                $icon_class = 'fas fa-user-md text-success';
-                                                break;
-                                            case 'Emergency':
-                                                $icon_class = 'fas fa-exclamation-triangle text-danger';
-                                                break;
-                                            default:
-                                                $icon_class = 'fas fa-exclamation-circle text-secondary';
-                                                break;
-                                        }
-                                        ?>
-                                    <i class="<?php echo $icon_class; ?> fa-lg"></i>
-                                </div>
-                                <div class="flex-grow-1">
-                                    <div class="fw-bold">
+                            <ul class="space-y-3">
+                                <?php foreach ($recent_reports as $report): ?>
+                                <?php
+                                    $icon_class = '';
+                                    $icon_bg = 'bg-slate-100 text-slate-600';
+                                    switch ($report['category']) {
+                                        case 'Fire':       $icon_class = 'fas fa-fire'; $icon_bg = 'bg-red-50 text-red-600'; break;
+                                        case 'Accident':   $icon_class = 'fas fa-car-crash'; $icon_bg = 'bg-amber-50 text-amber-600'; break;
+                                        case 'Security':   $icon_class = 'fas fa-shield-alt'; $icon_bg = 'bg-blue-50 text-blue-600'; break;
+                                        case 'Medical':    $icon_class = 'fas fa-user-md'; $icon_bg = 'bg-emerald-50 text-emerald-600'; break;
+                                        case 'Emergency':  $icon_class = 'fas fa-exclamation-triangle'; $icon_bg = 'bg-red-50 text-red-600'; break;
+                                        default:           $icon_class = 'fas fa-exclamation-circle'; break;
+                                    }
+                                ?>
+                                <li class="flex items-start gap-3">
+                                    <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg <?php echo $icon_bg; ?> shrink-0">
+                                        <i class="<?php echo $icon_class; ?>"></i>
+                                    </span>
+                                    <div class="flex-1 min-w-0">
                                         <a href="../reports/view.php?id=<?php echo $report['id']; ?>"
-                                            class="text-decoration-none">
-                                            <?php echo htmlspecialchars($report['title']); ?>
+                                           class="text-sm font-medium text-slate-900 hover:text-slate-700 hover:underline truncate block">
+                                            <?php echo htmlspecialchars($report['title'] ?? ''); ?>
                                         </a>
+                                        <div class="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                                            <span class="badge <?php echo get_severity_badge_class($report['severity_level']); ?>">
+                                                <?php echo $report['severity_level']; ?>
+                                            </span>
+                                            <span><?php echo htmlspecialchars($report['org_name'] ?? ''); ?></span>
+                                            <span>·</span>
+                                            <span><?php echo format_date($report['incident_date']); ?></span>
+                                        </div>
                                     </div>
-                                    <div class="text-muted small">
-                                        <span
-                                            class="badge <?php echo get_severity_badge_class($report['severity_level']); ?> me-1">
-                                            <?php echo $report['severity_level']; ?>
-                                        </span>
-                                        <?php echo htmlspecialchars($report['org_name']); ?> •
-                                        <?php echo format_date($report['incident_date']); ?>
-                                    </div>
-                                </div>
-                            </div>
-                            <?php endforeach; ?>
+                                </li>
+                                <?php endforeach; ?>
+                            </ul>
                         </div>
                     </div>
                 </div>

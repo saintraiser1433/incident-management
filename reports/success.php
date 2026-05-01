@@ -44,160 +44,82 @@ $page_title = 'Report Submitted Successfully - ' . APP_NAME;
 include '../views/header.php';
 ?>
 
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex justify-content-center align-items-center min-vh-100">
-                <div class="card shadow-lg border-0" style="max-width: 600px; width: 100%;">
-                    <div class="card-body text-center p-5">
-                        <!-- Success Icon -->
-                        <div class="mb-4">
-                            <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-success text-white" 
-                                 style="width: 80px; height: 80px; font-size: 2.5rem;">
-                                <i class="fas fa-check"></i>
-                            </div>
-                        </div>
-                        
-                        <!-- Success Message -->
-                        <h2 class="card-title text-success mb-3">Report Submitted Successfully!</h2>
-                        <p class="text-muted mb-4">
-                            Your incident report has been submitted and is now in the queue for review by the assigned organization.
-                        </p>
-                        
-                        <!-- Report Details -->
-                        <div class="bg-light rounded p-4 mb-4 text-start">
-                            <h5 class="mb-3">
-                                <i class="fas fa-file-alt text-primary me-2"></i>
-                                Report Details
-                            </h5>
-                            <div class="row">
-                                <div class="col-sm-4">
-                                    <strong>Report ID:</strong>
-                                </div>
-                                <div class="col-sm-8">
-                                    #<?php echo htmlspecialchars($report['id']); ?>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-sm-4">
-                                    <strong>Title:</strong>
-                                </div>
-                                <div class="col-sm-8">
-                                    <?php echo htmlspecialchars($report['title']); ?>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-sm-4">
-                                    <strong>Reported By:</strong>
-                                </div>
-                                <div class="col-sm-8">
-                                    <?php echo htmlspecialchars($report['reported_by']); ?>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-sm-4">
-                                    <strong>Assigned To:</strong>
-                                </div>
-                                <div class="col-sm-8">
-                                    <?php echo htmlspecialchars($report['org_name']); ?>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-sm-4">
-                                    <strong>Status:</strong>
-                                </div>
-                                <div class="col-sm-8">
-                                    <span class="badge bg-warning">Pending Review</span>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-sm-4">
-                                    <strong>Submitted:</strong>
-                                </div>
-                                <div class="col-sm-8">
-                                    <?php echo date('M d, Y \a\t g:i A', strtotime($report['created_at'])); ?>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Next Steps -->
-                        <div class="alert alert-info mb-4">
-                            <h6 class="alert-heading">
-                                <i class="fas fa-info-circle me-2"></i>
-                                What happens next?
-                            </h6>
-                            <ul class="mb-0 text-start">
-                                <li>The assigned organization will review your report</li>
-                                <li>You may receive SMS notifications about status updates</li>
-                                <li>The report will be processed according to its priority</li>
-                            </ul>
-                        </div>
-                        
-                        <!-- Action Buttons -->
-                        <div class="d-grid gap-2 d-md-flex justify-content-md-center">
-                            <?php if ($redirect_to === 'departments'): ?>
-                                <!-- Guest user - back to departments -->
-                                <a href="../dashboard/responder.php" class="btn btn-primary btn-lg">
-                                    <i class="fas fa-home me-2"></i>
-                                    Back to Departments
-                                </a>
-                            <?php else: ?>
-                                <!-- Logged in user - back to reports -->
-                                <a href="index.php" class="btn btn-primary btn-lg">
-                                    <i class="fas fa-list me-2"></i>
-                                    View All Reports
-                                </a>
-                            <?php endif; ?>
-                            
-                            <a href="create.php<?php echo $redirect_to === 'departments' ? '?redirect=departments' : ''; ?>" 
-                               class="btn btn-outline-secondary btn-lg">
-                                <i class="fas fa-plus me-2"></i>
-                                Submit Another Report
-                            </a>
-                        </div>
-                        
-                        <!-- Additional Info -->
-                        <div class="mt-4 pt-3 border-top">
-                            <small class="text-muted">
-                                <i class="fas fa-shield-alt me-1"></i>
-                                Your report is secure and will be handled confidentially by the assigned organization.
-                            </small>
-                        </div>
+<div class="container-fluid main-content">
+    <div class="flex items-center justify-center min-h-[80vh] py-10">
+        <div class="card w-full max-w-2xl">
+            <div class="card-body text-center p-8">
+                <div class="mb-5 flex justify-center">
+                    <div class="inline-flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                        <i class="fas fa-check text-2xl"></i>
                     </div>
+                </div>
+
+                <h2 class="text-2xl font-semibold tracking-tight text-slate-900">Report Submitted Successfully</h2>
+                <p class="text-sm text-slate-500 mt-2 max-w-md mx-auto">
+                    Your incident report has been submitted and is now in the queue for review by the assigned organization.
+                </p>
+
+                <div class="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5 text-left">
+                    <h5 class="text-sm font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                        <i class="fas fa-file-alt text-slate-400"></i>Report Details
+                    </h5>
+                    <dl class="grid grid-cols-1 sm:grid-cols-3 gap-y-3 text-sm">
+                        <dt class="text-slate-500">Report ID</dt>
+                        <dd class="sm:col-span-2 font-mono text-slate-900">#<?php echo htmlspecialchars($report['id']); ?></dd>
+
+                        <dt class="text-slate-500">Title</dt>
+                        <dd class="sm:col-span-2 text-slate-900"><?php echo htmlspecialchars($report['title']); ?></dd>
+
+                        <dt class="text-slate-500">Reported By</dt>
+                        <dd class="sm:col-span-2 text-slate-900"><?php echo htmlspecialchars($report['reported_by']); ?></dd>
+
+                        <dt class="text-slate-500">Assigned To</dt>
+                        <dd class="sm:col-span-2 text-slate-900"><?php echo htmlspecialchars($report['org_name']); ?></dd>
+
+                        <dt class="text-slate-500">Status</dt>
+                        <dd class="sm:col-span-2"><span class="badge bg-warning">Pending Review</span></dd>
+
+                        <dt class="text-slate-500">Submitted</dt>
+                        <dd class="sm:col-span-2 text-slate-900"><?php echo date('M d, Y \a\t g:i A', strtotime($report['created_at'])); ?></dd>
+                    </dl>
+                </div>
+
+                <div class="mt-6 rounded-lg border border-blue-200 bg-blue-50 p-4 text-left">
+                    <p class="text-sm font-medium text-blue-800 mb-1.5"><i class="fas fa-info-circle me-1"></i>What happens next?</p>
+                    <ul class="text-sm text-blue-800/90 list-disc list-inside space-y-0.5">
+                        <li>The assigned organization will review your report</li>
+                        <li>You may receive SMS notifications about status updates</li>
+                        <li>The report will be processed according to its priority</li>
+                    </ul>
+                </div>
+
+                <div class="mt-6 flex flex-col sm:flex-row items-center justify-center gap-2">
+                    <?php if ($redirect_to === 'departments'): ?>
+                        <a href="../dashboard/responder.php" class="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-slate-800 transition">
+                            <i class="fas fa-home"></i>Back to Departments
+                        </a>
+                    <?php else: ?>
+                        <a href="index.php" class="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-slate-800 transition">
+                            <i class="fas fa-list"></i>View All Reports
+                        </a>
+                    <?php endif; ?>
+
+                    <a href="create.php<?php echo $redirect_to === 'departments' ? '?redirect=departments' : ''; ?>"
+                       class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition">
+                        <i class="fas fa-plus text-slate-400"></i>Submit Another
+                    </a>
+                </div>
+
+                <div class="mt-6 pt-4 border-t border-slate-200">
+                    <p class="text-xs text-slate-500">
+                        <i class="fas fa-shield-alt me-1"></i>
+                        Your report is secure and will be handled confidentially by the assigned organization.
+                    </p>
                 </div>
             </div>
         </div>
     </div>
 </div>
-
-<style>
-.min-vh-100 {
-    min-height: 100vh;
-}
-
-.card {
-    border-radius: 15px;
-}
-
-.bg-success {
-    background-color: #28a745 !important;
-}
-
-.btn-lg {
-    padding: 12px 24px;
-    font-size: 1.1rem;
-}
-
-.alert-info {
-    background-color: #d1ecf1;
-    border-color: #bee5eb;
-    color: #0c5460;
-}
-
-.bg-light {
-    background-color: #f8f9fa !important;
-}
-</style>
 
 <?php include '../views/footer.php'; ?>
 

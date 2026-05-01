@@ -138,29 +138,25 @@ $tables = $stmt->fetchAll();
 ?>
 
 <div class="container-fluid">
-    <div class="row">
+    <div class="row g-0">
         <?php include '../views/sidebar.php'; ?>
-        
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
-            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h1 class="h2">
-                    <i class="fas fa-history me-2"></i>Audit Logs
-                </h1>
-                <div class="btn-toolbar mb-2 mb-md-0">
-                    <div class="btn-group me-2">
-                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="exportAuditLogs()">
-                            <i class="fas fa-download me-1"></i>Export
-                        </button>
-                    </div>
+
+        <main class="col-md-9 ms-sm-auto col-lg-10 main-content">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-5 mb-6 border-b border-slate-200">
+                <div>
+                    <h1 class="text-2xl font-semibold tracking-tight text-slate-900">Audit Logs</h1>
+                    <p class="text-sm text-slate-500 mt-1">Review system activity and user actions over time.</p>
                 </div>
+                <button type="button" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition" onclick="exportAuditLogs()">
+                    <i class="fas fa-download text-slate-400"></i>Export
+                </button>
             </div>
-            
+
             <!-- Filters -->
             <div class="card mb-4">
-                <div class="card-header">
-                    <h6 class="mb-0">
-                        <i class="fas fa-filter me-2"></i>Filters
-                    </h6>
+                <div class="card-header flex items-center gap-2">
+                    <i class="fas fa-filter text-slate-400"></i>
+                    <span>Filters</span>
                 </div>
                 <div class="card-body">
                     <form method="GET" class="row g-3">
@@ -224,34 +220,38 @@ $tables = $stmt->fetchAll();
                             </div>
                         </div>
                         <div class="col-12">
-                            <a href="<?php echo BASE_URL; ?>dashboard/audit.php" class="btn btn-outline-secondary btn-sm">
-                                <i class="fas fa-times me-1"></i>Clear Filters
+                            <a href="<?php echo BASE_URL; ?>dashboard/audit.php" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition">
+                                <i class="fas fa-times text-slate-400"></i>Clear Filters
                             </a>
                         </div>
                     </form>
                 </div>
             </div>
-            
+
             <!-- Audit Logs Table -->
             <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0">
-                        <i class="fas fa-list me-2"></i>Audit Logs (<?php echo $total_records; ?> total)
-                    </h6>
-                    <small class="text-muted">
-                        Showing <?php echo count($audit_logs); ?> of <?php echo $total_records; ?> logs
+                <div class="card-header flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-list text-slate-400"></i>
+                        <span>Audit Logs</span>
+                        <span class="badge bg-secondary"><?php echo $total_records; ?></span>
+                    </div>
+                    <small class="text-slate-500">
+                        Showing <?php echo count($audit_logs); ?> of <?php echo $total_records; ?>
                     </small>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-0">
                     <?php if (empty($audit_logs)): ?>
-                        <div class="text-center py-4">
-                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-                            <h5 class="text-muted">No audit logs found</h5>
-                            <p class="text-muted">Try adjusting your filters or check back later.</p>
+                        <div class="text-center py-12">
+                            <div class="inline-flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400 mb-3">
+                                <i class="fas fa-inbox text-xl"></i>
+                            </div>
+                            <h5 class="text-base font-medium text-slate-900">No audit logs found</h5>
+                            <p class="text-sm text-slate-500 mt-1">Try adjusting your filters or check back later.</p>
                         </div>
                     <?php else: ?>
                         <div class="table-responsive">
-                            <table class="table table-hover table-sm">
+                            <table class="table table-hover mb-0">
                                 <thead>
                                     <tr>
                                         <th>ID</th>
@@ -265,12 +265,12 @@ $tables = $stmt->fetchAll();
                                 <tbody>
                                     <?php foreach ($audit_logs as $log): ?>
                                         <tr>
-                                            <td>#<?php echo $log['id']; ?></td>
+                                            <td class="font-mono text-xs text-slate-500">#<?php echo $log['id']; ?></td>
                                             <td>
                                                 <?php if ($log['user_name']): ?>
-                                                    <strong><?php echo htmlspecialchars($log['user_name']); ?></strong>
+                                                    <span class="text-sm font-medium text-slate-900"><?php echo htmlspecialchars($log['user_name']); ?></span>
                                                 <?php else: ?>
-                                                    <span class="text-muted">System</span>
+                                                    <span class="text-xs text-slate-500">System</span>
                                                 <?php endif; ?>
                                             </td>
                                             <td>
@@ -287,16 +287,16 @@ $tables = $stmt->fetchAll();
                                                 <span class="badge <?php echo $badge_class; ?>"><?php echo $log['action']; ?></span>
                                             </td>
                                             <td>
-                                                <code><?php echo htmlspecialchars($log['table_name']); ?></code>
+                                                <code class="text-xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-700"><?php echo htmlspecialchars($log['table_name']); ?></code>
                                             </td>
                                             <td>
                                                 <?php if ($log['record_id']): ?>
-                                                    #<?php echo $log['record_id']; ?>
+                                                    <span class="font-mono text-xs text-slate-700">#<?php echo $log['record_id']; ?></span>
                                                 <?php else: ?>
-                                                    <span class="text-muted">-</span>
+                                                    <span class="text-slate-400 text-xs">—</span>
                                                 <?php endif; ?>
                                             </td>
-                                            <td>
+                                            <td class="text-sm text-slate-700">
                                                 <?php echo format_datetime($log['timestamp']); ?>
                                             </td>
                                         </tr>
@@ -305,38 +305,37 @@ $tables = $stmt->fetchAll();
                             </table>
                         </div>
                         
-                        <!-- Pagination -->
-                        <?php if ($total_pages > 1): ?>
-                            <nav aria-label="Audit logs pagination">
-                                <ul class="pagination justify-content-center">
-                                    <?php if ($page > 1): ?>
-                                        <li class="page-item">
-                                            <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page - 1])); ?>">
-                                                <i class="fas fa-chevron-left"></i>
-                                            </a>
-                                        </li>
-                                    <?php endif; ?>
-                                    
-                                    <?php for ($i = max(1, $page - 2); $i <= min($total_pages, $page + 2); $i++): ?>
-                                        <li class="page-item <?php echo $i == $page ? 'active' : ''; ?>">
-                                            <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $i])); ?>">
-                                                <?php echo $i; ?>
-                                            </a>
-                                        </li>
-                                    <?php endfor; ?>
-                                    
-                                    <?php if ($page < $total_pages): ?>
-                                        <li class="page-item">
-                                            <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page + 1])); ?>">
-                                                <i class="fas fa-chevron-right"></i>
-                                            </a>
-                                        </li>
-                                    <?php endif; ?>
-                                </ul>
-                            </nav>
-                        <?php endif; ?>
                     <?php endif; ?>
                 </div>
+                <?php if ($total_pages > 1): ?>
+                <div class="card-footer">
+                    <nav aria-label="Audit logs pagination">
+                        <ul class="pagination justify-content-center mb-0">
+                            <?php if ($page > 1): ?>
+                                <li class="page-item">
+                                    <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page - 1])); ?>">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </a>
+                                </li>
+                            <?php endif; ?>
+                            <?php for ($i = max(1, $page - 2); $i <= min($total_pages, $page + 2); $i++): ?>
+                                <li class="page-item <?php echo $i == $page ? 'active' : ''; ?>">
+                                    <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $i])); ?>">
+                                        <?php echo $i; ?>
+                                    </a>
+                                </li>
+                            <?php endfor; ?>
+                            <?php if ($page < $total_pages): ?>
+                                <li class="page-item">
+                                    <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page + 1])); ?>">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </a>
+                                </li>
+                            <?php endif; ?>
+                        </ul>
+                    </nav>
+                </div>
+                <?php endif; ?>
             </div>
         </main>
     </div>

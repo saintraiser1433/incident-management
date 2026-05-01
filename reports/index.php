@@ -99,36 +99,34 @@ $organizations = $stmt->fetchAll();
 ?>
 
 <div class="container-fluid">
-    <div class="row">
+    <div class="row g-0">
         <?php include '../views/sidebar.php'; ?>
-        
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
-            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h1 class="h2">
-                    <i class="fas fa-file-alt me-2"></i>All Incident Reports
-                </h1>
-                <div class="btn-toolbar mb-2 mb-md-0">
-                    <div class="btn-group me-2">
-                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="exportReports()">
-                            <i class="fas fa-download me-1"></i>Export
-                        </button>
-                    </div>
+
+        <main class="col-md-9 ms-sm-auto col-lg-10 main-content">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-5 mb-6 border-b border-slate-200">
+                <div>
+                    <h1 class="text-2xl font-semibold tracking-tight text-slate-900">All Incident Reports</h1>
+                    <p class="text-sm text-slate-500 mt-1">Browse, filter and export reports across organizations.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition" onclick="exportReports()">
+                        <i class="fas fa-download text-slate-400"></i>Export
+                    </button>
                 </div>
             </div>
-            
+
             <!-- Filters -->
             <div class="card mb-4">
-                <div class="card-header">
-                    <h6 class="mb-0">
-                        <i class="fas fa-filter me-2"></i>Filters
-                    </h6>
+                <div class="card-header flex items-center gap-2">
+                    <i class="fas fa-filter text-slate-400"></i>
+                    <span>Filters</span>
                 </div>
                 <div class="card-body">
                     <form method="GET" class="row g-3">
                         <div class="col-md-3">
                             <label for="search" class="form-label">Search</label>
                             <input type="text" class="form-control form-control-sm" id="search" name="search" 
-                                   placeholder="Search by title, description, or reporter..." value="<?php echo htmlspecialchars($search); ?>">
+                                   placeholder="Search by title, description, or reporter..." value="<?php echo htmlspecialchars($search ?? ''); ?>">
                         </div>
                         <div class="col-md-2">
                             <label for="status" class="form-label">Status</label>
@@ -169,7 +167,7 @@ $organizations = $stmt->fetchAll();
                                 <?php foreach ($organizations as $org): ?>
                                     <option value="<?php echo $org['id']; ?>" 
                                             <?php echo $organization_filter == $org['id'] ? 'selected' : ''; ?>>
-                                        <?php echo htmlspecialchars($org['org_name']); ?>
+                                        <?php echo htmlspecialchars($org['org_name'] ?? ''); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
@@ -184,38 +182,42 @@ $organizations = $stmt->fetchAll();
                             <input type="date" class="form-control form-control-sm" id="date_to" name="date_to" 
                                    value="<?php echo $date_to; ?>">
                         </div>
-                        <div class="col-12">
-                            <button type="submit" class="btn btn-primary btn-sm">
-                                <i class="fas fa-search me-1"></i>Apply Filters
+                        <div class="col-12 flex items-center gap-2 pt-2">
+                            <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 transition">
+                                <i class="fas fa-search"></i>Apply Filters
                             </button>
-                            <a href="<?php echo BASE_URL; ?>reports/index.php" class="btn btn-outline-secondary btn-sm">
-                                <i class="fas fa-times me-1"></i>Clear
+                            <a href="<?php echo BASE_URL; ?>reports/index.php" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition">
+                                <i class="fas fa-times text-slate-400"></i>Clear
                             </a>
                         </div>
                     </form>
                 </div>
             </div>
-            
+
             <!-- Reports Table -->
             <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0">
-                        <i class="fas fa-list me-2"></i>Reports (<?php echo $total_records; ?>)
-                    </h6>
-                    <small class="text-muted">
-                        Showing <?php echo count($reports); ?> of <?php echo $total_records; ?> reports
+                <div class="card-header flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-list text-slate-400"></i>
+                        <span>Reports</span>
+                        <span class="badge bg-secondary"><?php echo $total_records; ?></span>
+                    </div>
+                    <small class="text-slate-500">
+                        Showing <?php echo count($reports); ?> of <?php echo $total_records; ?>
                     </small>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-0">
                     <?php if (empty($reports)): ?>
-                        <div class="text-center py-4">
-                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-                            <h5 class="text-muted">No reports found</h5>
-                            <p class="text-muted">Try adjusting your filters or create a new report.</p>
+                        <div class="text-center py-12">
+                            <div class="inline-flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400 mb-3">
+                                <i class="fas fa-inbox text-xl"></i>
+                            </div>
+                            <h5 class="text-base font-medium text-slate-900">No reports found</h5>
+                            <p class="text-sm text-slate-500 mt-1">Try adjusting your filters or create a new report.</p>
                         </div>
                     <?php else: ?>
                         <div class="table-responsive">
-                            <table class="table table-hover">
+                            <table class="table table-hover mb-0">
                                 <thead>
                                     <tr>
                                         <th>ID</th>
@@ -233,11 +235,10 @@ $organizations = $stmt->fetchAll();
                                 <tbody>
                                     <?php foreach ($reports as $report): ?>
                                         <tr>
-                                            <td>#<?php echo $report['id']; ?></td>
+                                            <td class="font-mono text-xs text-slate-500">#<?php echo $report['id']; ?></td>
                                             <td>
-                                                <strong><?php echo htmlspecialchars($report['title']); ?></strong>
-                                                <br>
-                                                <small class="text-muted"><?php echo htmlspecialchars(substr($report['description'], 0, 50)) . '...'; ?></small>
+                                                <div class="font-medium text-slate-900"><?php echo htmlspecialchars($report['title'] ?? ''); ?></div>
+                                                <div class="text-xs text-slate-500 mt-0.5 truncate max-w-xs"><?php echo htmlspecialchars(substr((string) ($report['description'] ?? ''), 0, 60)) . '...'; ?></div>
                                             </td>
                                             <td>
                                                 <span class="badge bg-info"><?php echo $report['category']; ?></span>
@@ -256,23 +257,24 @@ $organizations = $stmt->fetchAll();
                                                 <?php if (!empty($report['priority_number'])): ?>
                                                     <span class="badge bg-success">#<?php echo (int)$report['priority_number']; ?></span>
                                                 <?php else: ?>
-                                                    <span class="text-muted">-</span>
+                                                    <span class="text-slate-400 text-xs">—</span>
                                                 <?php endif; ?>
                                             </td>
-                                            <td><?php echo htmlspecialchars($report['org_name']); ?></td>
-                                            <td><?php echo htmlspecialchars($report['reporter_name']); ?></td>
+                                            <td class="text-sm text-slate-700"><?php echo htmlspecialchars($report['org_name'] ?? ''); ?></td>
+                                            <td class="text-sm text-slate-700"><?php echo htmlspecialchars($report['reporter_name'] ?? ''); ?></td>
                                             <td>
-                                                <?php echo format_date($report['incident_date']); ?>
-                                                <br>
-                                                <small class="text-muted"><?php echo date('g:i A', strtotime($report['incident_time'])); ?></small>
+                                                <div class="text-sm text-slate-700"><?php echo format_date($report['incident_date']); ?></div>
+                                                <div class="text-xs text-slate-500"><?php echo !empty($report['incident_time']) ? date('g:i A', strtotime($report['incident_time'])) : ''; ?></div>
                                             </td>
                                             <td>
-                                                <a href="view.php?id=<?php echo $report['id']; ?>" class="btn btn-sm btn-outline-primary">
-                                                    <i class="fas fa-eye"></i>
-                                                </a>
-                                                <a href="edit.php?id=<?php echo $report['id']; ?>" class="btn btn-sm btn-outline-secondary">
-                                                    <i class="fas fa-edit"></i>
-                                                </a>
+                                                <div class="flex items-center gap-1">
+                                                    <a href="view.php?id=<?php echo $report['id']; ?>" class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 transition" title="View">
+                                                        <i class="fas fa-eye text-xs"></i>
+                                                    </a>
+                                                    <a href="edit.php?id=<?php echo $report['id']; ?>" class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 transition" title="Edit">
+                                                        <i class="fas fa-edit text-xs"></i>
+                                                    </a>
+                                                </div>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>

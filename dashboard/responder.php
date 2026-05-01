@@ -68,42 +68,59 @@ $query = "SELECT o.*, COUNT(ir.id) as report_count
 $stmt = $db->prepare($query);
 $stmt->execute();
 $organizations = $stmt->fetchAll();
+
+$staff_org_logo_path = null;
+if ($is_member && !empty($_SESSION['organization_id'])) {
+    $lgStmt = $db->prepare('SELECT logo_path FROM organizations WHERE id = ?');
+    $lgStmt->execute([(int) $_SESSION['organization_id']]);
+    $staff_org_logo_path = $lgStmt->fetchColumn() ?: null;
+}
 ?>
 
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <!-- Header -->
-            <div class="d-flex justify-content-between align-items-center mb-4 mt-4">
-                <h1 class="h2">
-                    <?php if ($is_member): ?>
-                        <i class="fas fa-tasks me-2"></i>My Assigned Issues
-                    <?php else: ?>
-                        <i class="fas fa-building me-2"></i>Departments
-                    <?php endif; ?>
+<div class="container-fluid main-content">
+    <div class="max-w-7xl mx-auto">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-5 mb-6 border-b border-slate-200">
+            <div class="flex items-start gap-4">
+                <?php if ($is_member && !empty($staff_org_logo_path)): ?>
+                    <img src="<?php echo htmlspecialchars(BASE_URL . $staff_org_logo_path); ?>" alt="" class="h-12 w-12 shrink-0 rounded-xl border border-slate-200 bg-white object-contain p-1">
+                <?php endif; ?>
+                <div>
+                <h1 class="text-2xl font-semibold tracking-tight text-slate-900">
+                    <?php echo $is_member ? 'My Assigned Issues' : 'Departments'; ?>
                 </h1>
-                <div class="btn-group" role="group">
-                    <a href="../reports/search.php" class="btn btn-outline-secondary">
-                        <i class="fas fa-search me-1"></i>Search Ticket
-                    </a>
-                    <?php if (!$is_member): ?>
-                        <button type="button" class="btn btn-outline-primary active" id="gridViewBtn">
-                            <i class="fas fa-th me-1"></i>Grid View
-                        </button>
-                        <button type="button" class="btn btn-outline-primary" id="listViewBtn">
-                            <i class="fas fa-list me-1"></i>List View
-                        </button>
-                    <?php endif; ?>
+                <p class="text-sm text-slate-500 mt-1">
+                    <?php echo $is_member ? 'Issues currently assigned to you across pending and resolved states.' : 'Choose a department to file an incident report.'; ?>
+                </p>
                 </div>
             </div>
+            <div class="flex flex-wrap items-center gap-2">
+                <?php if (!is_logged_in()): ?>
+                    <a href="<?php echo BASE_URL; ?>auth/login.php" class="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 transition">
+                        <i class="fas fa-sign-in-alt"></i>Staff login
+                    </a>
+                <?php endif; ?>
+                <a href="../reports/search.php" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition">
+                    <i class="fas fa-search text-slate-400"></i>Search Ticket
+                </a>
+                <?php if (!$is_member): ?>
+                    <div class="inline-flex rounded-lg border border-slate-300 bg-white p-1">
+                        <button type="button" class="active inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-sm font-medium text-slate-700" id="gridViewBtn">
+                            <i class="fas fa-th"></i>Grid
+                        </button>
+                        <button type="button" class="inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-sm font-medium text-slate-500 hover:text-slate-700" id="listViewBtn">
+                            <i class="fas fa-list"></i>List
+                        </button>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
             
             <?php if ($is_member): ?>
                 <!-- My Assigned Issues Table -->
                 <div class="card mb-4">
-                    <div class="card-header">
-                        <h6 class="mb-0">
-                            <i class="fas fa-clipboard-list me-2"></i>Pending / In Progress Issues Assigned to Me
-                        </h6>
+                    <div class="card-header flex items-center gap-2">
+                        <i class="fas fa-clipboard-list text-slate-400"></i>
+                        <span>Pending / In Progress Issues Assigned to Me</span>
                     </div>
                     <div class="card-body">
                         <?php if (empty($my_reports)): ?>
@@ -174,10 +191,9 @@ $organizations = $stmt->fetchAll();
 
                 <!-- My Resolved / Closed Issues Table -->
                 <div class="card mb-4">
-                    <div class="card-header">
-                        <h6 class="mb-0">
-                            <i class="fas fa-check-double me-2"></i>Resolved / Closed Issues Assigned to Me
-                        </h6>
+                    <div class="card-header flex items-center gap-2">
+                        <i class="fas fa-check-double text-slate-400"></i>
+                        <span>Resolved / Closed Issues Assigned to Me</span>
                     </div>
                     <div class="card-body">
                         <?php if (empty($my_resolved_reports)): ?>
@@ -254,82 +270,52 @@ $organizations = $stmt->fetchAll();
             
             <!-- Departments Grid (for guests / non-members) -->
             <?php if (!$is_member): ?>
-            <div class="row" id="departmentsGrid">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="departmentsGrid">
                 <?php foreach ($organizations as $org): ?>
                     <?php
-                    // Get icon and color based on organization type
                     $icon_class = '';
-                    $bg_color = '';
+                    $icon_bg = '';
                     switch ($org['org_type']) {
-                        case 'Hospital':
-                            $icon_class = 'fas fa-hospital';
-                            $bg_color = 'bg-success';
-                            break;
-                        case 'Fire Department':
-                            $icon_class = 'fas fa-fire-extinguisher';
-                            $bg_color = 'bg-danger';
-                            break;
-                        case 'Police':
-                            $icon_class = 'fas fa-shield-alt';
-                            $bg_color = 'bg-primary';
-                            break;
-                        case 'Emergency Services':
-                            $icon_class = 'fas fa-ambulance';
-                            $bg_color = 'bg-info';
-                            break;
-                        case 'Security':
-                            $icon_class = 'fas fa-shield-alt';
-                            $bg_color = 'bg-warning';
-                            break;
-                        default:
-                            $icon_class = 'fas fa-building';
-                            $bg_color = 'bg-secondary';
+                        case 'Hospital':           $icon_class = 'fas fa-hospital';          $icon_bg = 'bg-emerald-50 text-emerald-600'; break;
+                        case 'Fire Department':    $icon_class = 'fas fa-fire-extinguisher'; $icon_bg = 'bg-red-50 text-red-600'; break;
+                        case 'Police':             $icon_class = 'fas fa-shield-alt';        $icon_bg = 'bg-blue-50 text-blue-600'; break;
+                        case 'Emergency Services': $icon_class = 'fas fa-ambulance';         $icon_bg = 'bg-sky-50 text-sky-600'; break;
+                        case 'Security':           $icon_class = 'fas fa-shield-alt';        $icon_bg = 'bg-amber-50 text-amber-600'; break;
+                        default:                   $icon_class = 'fas fa-building';          $icon_bg = 'bg-slate-100 text-slate-600';
                     }
                     ?>
-                    <div class="col-lg-4 col-md-6 mb-4">
-                        <div class="card h-100 shadow-sm">
-                            <div class="card-body text-center">
-                                <!-- Icon -->
-                                <div class="mb-3">
-                                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center <?php echo $bg_color; ?>" 
-                                         style="width: 80px; height: 80px;">
-                                        <i class="<?php echo $icon_class; ?> fa-2x text-white"></i>
-                                    </div>
-                                </div>
-                                
-                                <!-- Department Info -->
-                                <h5 class="card-title fw-bold"><?php echo htmlspecialchars($org['org_name']); ?></h5>
-                                <p class="text-muted mb-2"><?php echo htmlspecialchars($org['org_type']); ?></p>
-                                
-                                <!-- Contact -->
-                                <div class="mb-2">
-                                    <i class="fas fa-phone me-1"></i>
-                                    <span><?php echo htmlspecialchars($org['contact_number']); ?></span>
-                                </div>
-                                
-                                <!-- Reports Count -->
-                                <div class="mb-3">
-                                    <i class="fas fa-file-alt me-1"></i>
-                                    <span><?php echo $org['report_count']; ?> Reports</span>
-                                </div>
-                                
-                                <!-- Action Button -->
-                                <a href="../reports/create.php?org_id=<?php echo $org['id']; ?>&redirect=departments" 
-                                   class="btn btn-primary">
-                                    <i class="fas fa-plus me-1"></i>Report Incident
-                                </a>
+                    <div class="card group">
+                        <div class="card-body">
+                            <div class="flex items-start justify-between mb-4">
+                                <span class="inline-flex h-12 w-12 items-center justify-center rounded-xl <?php echo $icon_bg; ?> text-lg">
+                                    <i class="<?php echo $icon_class; ?>"></i>
+                                </span>
+                                <span class="badge bg-secondary"><?php echo $org['report_count']; ?> reports</span>
                             </div>
+
+                            <h3 class="text-base font-semibold text-slate-900 leading-tight"><?php echo htmlspecialchars($org['org_name']); ?></h3>
+                            <p class="text-sm text-slate-500 mt-0.5"><?php echo htmlspecialchars($org['org_type']); ?></p>
+
+                            <div class="mt-3 flex items-center gap-2 text-sm text-slate-600">
+                                <i class="fas fa-phone text-slate-400 text-xs"></i>
+                                <span><?php echo htmlspecialchars($org['contact_number']); ?></span>
+                            </div>
+
+                            <a href="../reports/create.php?org_id=<?php echo $org['id']; ?>&redirect=departments"
+                               class="mt-5 w-full inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 transition">
+                                <i class="fas fa-plus"></i>Report Incident
+                            </a>
                         </div>
                     </div>
                 <?php endforeach; ?>
             </div>
-            
+
             <!-- Departments List (Hidden by default) -->
             <div class="d-none" id="departmentsList">
                 <div class="card">
-                    <div class="card-body">
+                    <div class="card-body p-0">
                         <div class="table-responsive">
-                            <table class="table table-hover">
+                            <table class="table table-hover mb-0">
                                 <thead>
                                     <tr>
                                         <th>Department</th>
@@ -343,21 +329,20 @@ $organizations = $stmt->fetchAll();
                                     <?php foreach ($organizations as $org): ?>
                                         <tr>
                                             <td>
-                                                <div class="d-flex align-items-center">
-                                                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-primary me-3" 
-                                                         style="width: 40px; height: 40px;">
-                                                        <i class="fas fa-building text-white"></i>
-                                                    </div>
-                                                    <strong><?php echo htmlspecialchars($org['org_name']); ?></strong>
+                                                <div class="flex items-center gap-3">
+                                                    <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+                                                        <i class="fas fa-building"></i>
+                                                    </span>
+                                                    <span class="font-medium text-slate-900"><?php echo htmlspecialchars($org['org_name']); ?></span>
                                                 </div>
                                             </td>
-                                            <td><?php echo htmlspecialchars($org['org_type']); ?></td>
-                                            <td><?php echo htmlspecialchars($org['contact_number']); ?></td>
-                                            <td><?php echo $org['report_count']; ?></td>
+                                            <td class="text-sm text-slate-700"><?php echo htmlspecialchars($org['org_type']); ?></td>
+                                            <td class="text-sm text-slate-700"><?php echo htmlspecialchars($org['contact_number']); ?></td>
+                                            <td class="text-sm text-slate-700"><?php echo $org['report_count']; ?></td>
                                             <td>
-                                                <a href="../reports/create.php?org_id=<?php echo $org['id']; ?>&redirect=departments" 
-                                                   class="btn btn-sm btn-primary">
-                                                    <i class="fas fa-plus me-1"></i>Report Incident
+                                                <a href="../reports/create.php?org_id=<?php echo $org['id']; ?>&redirect=departments"
+                                                   class="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800 transition">
+                                                    <i class="fas fa-plus"></i>Report Incident
                                                 </a>
                                             </td>
                                         </tr>
@@ -369,7 +354,6 @@ $organizations = $stmt->fetchAll();
                 </div>
             </div>
             <?php endif; ?>
-        </div>
     </div>
 </div>
 

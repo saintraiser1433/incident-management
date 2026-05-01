@@ -279,31 +279,29 @@ $page_title = 'Create Incident Report - ' . APP_NAME;
 include '../views/header.php';
 ?>
 
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h1 class="h2">
-                    <i class="fas fa-plus-circle me-2"></i>Create Incident Report
-                </h1>
+<div class="container-fluid main-content">
+    <div class="max-w-5xl mx-auto">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-5 mb-6 border-b border-slate-200">
+            <div>
+                <h1 class="text-2xl font-semibold tracking-tight text-slate-900">Create Incident Report</h1>
+                <p class="text-sm text-slate-500 mt-1">Provide details so responders can act quickly and accurately.</p>
             </div>
-            
-            
-            <?php if ($error_message): ?>
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    <?php echo $error_message; ?>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            <?php endif; ?>
-            
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-file-alt me-2"></i>Incident Details
-                    </h5>
-                </div>
-                <div class="card-body">
+        </div>
+
+        <?php if ($error_message): ?>
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <?php echo $error_message; ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        <?php endif; ?>
+
+        <div class="card">
+            <div class="card-header flex items-center gap-2">
+                <i class="fas fa-file-alt text-slate-400"></i>
+                <span>Incident Details</span>
+            </div>
+            <div class="card-body">
                     <form method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
                         <div class="row">
                             <div class="col-md-6">
@@ -443,11 +441,22 @@ include '../views/header.php';
                             <label class="form-label">
                                 <i class="fas fa-map-marker-alt me-1"></i>Pin Location on Map (Optional but Recommended)
                             </label>
-                            <div id="incident-map" style="height: 320px; border-radius: 0.5rem; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);"></div>
+                            <div class="flex flex-wrap items-stretch gap-2 mb-2">
+                                <button type="button" id="btn-share-location" class="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 transition shrink-0">
+                                    <i class="fas fa-location-crosshairs text-sky-600"></i>
+                                    <span>Use my current location</span>
+                                </button>
+                                <p id="geo-status" class="flex-1 min-w-[200px] text-sm text-slate-600 self-center m-0" role="status" aria-live="polite"></p>
+                            </div>
+                            <p class="form-text text-xs sm:text-sm mb-2">
+                                <i class="fas fa-mobile-alt me-1"></i>
+                                On phones and tablets, tap the button above — your browser will ask permission to use your location, then the map will center on your position.
+                            </p>
+                            <div id="incident-map" style="height: 320px; border-radius: 0.5rem; overflow: hidden; border: 1px solid rgba(0,0,0,0.12);"></div>
                             <input type="hidden" id="latitude" name="latitude" value="<?php echo isset($_POST['latitude']) ? htmlspecialchars($_POST['latitude']) : ''; ?>">
                             <input type="hidden" id="longitude" name="longitude" value="<?php echo isset($_POST['longitude']) ? htmlspecialchars($_POST['longitude']) : ''; ?>">
                             <div class="form-text">
-                                Click on the map to set the exact incident location. You can click again to move the pin.
+                                Or click on the map to drop or move the pin. You can use both the button and map together.
                             </div>
                         </div>
 
@@ -526,18 +535,17 @@ include '../views/header.php';
                             </button>
                         </div>
                         
-                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                            <a href="<?php echo BASE_URL; ?>dashboard/responder.php" class="btn btn-secondary me-md-2">
-                                <i class="fas fa-times me-1"></i>Cancel
+                        <div class="flex flex-col sm:flex-row sm:justify-end gap-2 pt-2">
+                            <a href="<?php echo BASE_URL; ?>dashboard/responder.php" class="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition">
+                                <i class="fas fa-times text-slate-400"></i>Cancel
                             </a>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save me-1"></i>Create Report
+                            <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 transition">
+                                <i class="fas fa-save"></i>Create Report
                             </button>
                         </div>
                     </form>
                 </div>
             </div>
-        </div>
     </div>
 </div>
 
@@ -618,18 +626,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (hasInitial) {
             map.setView([parsedInitialLat, parsedInitialLng], 16);
             setMarker(parsedInitialLat, parsedInitialLng);
-        } else if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                function(pos) {
-                    const lat = pos.coords.latitude;
-                    const lng = pos.coords.longitude;
-                    map.setView([lat, lng], 16);
-                    setMarker(lat, lng);
-                },
-                function() {
-                    map.setView(defaultCenter, 13);
-                }
-            );
         } else {
             map.setView(defaultCenter, 13);
         }
@@ -637,6 +633,66 @@ document.addEventListener('DOMContentLoaded', function() {
         map.on('click', function(e) {
             setMarker(e.latlng.lat, e.latlng.lng);
         });
+
+        function applySharedLocation(lat, lng) {
+            map.setView([lat, lng], 17);
+            setMarker(lat, lng);
+        }
+
+        const btnShare = document.getElementById('btn-share-location');
+        const geoStatus = document.getElementById('geo-status');
+        if (btnShare) {
+            btnShare.addEventListener('click', function() {
+                if (!navigator.geolocation) {
+                    if (geoStatus) {
+                        geoStatus.textContent = 'Your browser does not support geolocation.';
+                        geoStatus.classList.remove('text-emerald-700', 'text-slate-600');
+                        geoStatus.classList.add('text-amber-800');
+                    }
+                    return;
+                }
+                btnShare.disabled = true;
+                if (geoStatus) {
+                    geoStatus.textContent = 'Waiting for location permission…';
+                    geoStatus.classList.remove('text-emerald-700', 'text-amber-800');
+                    geoStatus.classList.add('text-slate-600');
+                }
+                navigator.geolocation.getCurrentPosition(
+                    function(pos) {
+                        btnShare.disabled = false;
+                        const lat = pos.coords.latitude;
+                        const lng = pos.coords.longitude;
+                        applySharedLocation(lat, lng);
+                        if (geoStatus) {
+                            geoStatus.textContent = 'Location placed on the map. Adjust the pin if needed.';
+                            geoStatus.classList.remove('text-slate-600', 'text-amber-800');
+                            geoStatus.classList.add('text-emerald-700');
+                        }
+                    },
+                    function(err) {
+                        btnShare.disabled = false;
+                        let msg = 'Could not read your location.';
+                        if (err && err.code === 1) {
+                            msg = 'Permission denied. Allow location for this site in your browser or phone settings, then try again.';
+                        } else if (err && err.code === 2) {
+                            msg = 'Location unavailable. Try again outdoors or check GPS.';
+                        } else if (err && err.code === 3) {
+                            msg = 'Location request timed out. Try again.';
+                        }
+                        if (geoStatus) {
+                            geoStatus.textContent = msg;
+                            geoStatus.classList.remove('text-slate-600', 'text-emerald-700');
+                            geoStatus.classList.add('text-amber-800');
+                        }
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 20000,
+                        maximumAge: 0
+                    }
+                );
+            });
+        }
     }
 }
 );

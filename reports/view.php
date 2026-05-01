@@ -238,27 +238,45 @@ include '../views/header.php';
 ?>
 
 <div class="container-fluid">
-    <div class="row">
+    <div class="row g-0">
         <?php if (!$is_guest_access): ?>
             <?php include '../views/sidebar.php'; ?>
         <?php endif; ?>
 
-        <main class="<?php echo $is_guest_access ? 'col-12' : 'col-md-9 ms-sm-auto col-lg-10'; ?> px-md-4 main-content">
-            <div
-                class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h1 class="h2">
-                    <i class="fas fa-file-alt me-2"></i>Report #<?php echo $report['id']; ?>
-                </h1>
-                <div class="btn-toolbar mb-2 mb-md-0">
-                    <div class="btn-group me-2">
+        <main class="<?php echo $is_guest_access ? 'col-12' : 'col-md-9 ms-sm-auto col-lg-10'; ?> main-content">
+
+            <!-- Page Header (shadcn-style) -->
+            <div class="rounded-xl border border-slate-200 bg-white p-5 mb-6 shadow-sm">
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                    <div class="flex items-start gap-3">
+                        <span class="inline-flex h-11 w-11 items-center justify-center rounded-lg bg-red-50 text-red-600 shrink-0">
+                            <i class="fas fa-file-alt text-lg"></i>
+                        </span>
+                        <div>
+                            <p class="text-xs uppercase tracking-wider text-slate-500 font-medium">Incident</p>
+                            <h1 class="text-xl font-semibold tracking-tight text-slate-900 leading-tight">
+                                <?php echo htmlspecialchars($report['title']); ?>
+                            </h1>
+                            <div class="mt-2 flex flex-wrap items-center gap-2">
+                                <span class="font-mono text-xs text-slate-500">#<?php echo $report['id']; ?></span>
+                                <span class="badge <?php echo get_status_badge_class($report['status']); ?>">
+                                    <?php echo $report['status']; ?>
+                                </span>
+                                <span class="badge <?php echo get_severity_badge_class($report['severity_level']); ?>">
+                                    <?php echo $report['severity_level']; ?>
+                                </span>
+                                <span class="badge bg-info"><?php echo $report['category']; ?></span>
+                                <?php if (!empty($report['priority_number'])): ?>
+                                    <span class="badge bg-success">Priority #<?php echo (int)$report['priority_number']; ?></span>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
                         <?php if ($is_guest_access): ?>
-                            <a href="search.php" class="btn btn-sm btn-outline-secondary">
-                                <i class="fas fa-arrow-left me-1"></i>Back to Search
+                            <a href="search.php" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition">
+                                <i class="fas fa-arrow-left text-slate-400"></i>Back to Search
                             </a>
-                        <?php else: ?>
-                            <!-- <a href="index.php" class="btn btn-sm btn-outline-secondary">
-                                <i class="fas fa-arrow-left me-1"></i>Back to Reports
-                            </a> -->
                         <?php endif; ?>
                         <?php if (
                             !$is_guest_access &&
@@ -267,27 +285,19 @@ include '../views/header.php';
                                 (isset($_SESSION['user_role']) && $_SESSION['user_role'] == 'Organization Account' && $report['organization_id'] == $_SESSION['organization_id'])
                             )
                         ): ?>
-                            <a href="edit.php?id=<?php echo $report['id']; ?>" class="btn btn-sm btn-outline-primary">
-                                <i class="fas fa-edit me-1"></i>Edit
+                            <a href="edit.php?id=<?php echo $report['id']; ?>" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition">
+                                <i class="fas fa-edit text-slate-400"></i>Edit
                             </a>
                             <?php if (in_array($report['status'], ['Resolved', 'Closed'], true)): ?>
-                                <a
-                                    href="resolution_report.php?id=<?php echo $report['id']; ?>"
-                                    class="btn btn-sm btn-success"
-                                    target="_blank"
-                                >
-                                    <i class="fas fa-file-contract me-1"></i>Resolution Report
+                                <a href="resolution_report.php?id=<?php echo $report['id']; ?>" class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition" target="_blank">
+                                    <i class="fas fa-file-contract"></i>Resolution Report
                                 </a>
                             <?php endif; ?>
                         <?php endif; ?>
 
                         <?php if (!$is_guest_access && $member_can_view_resolution): ?>
-                            <a
-                                href="resolution_report.php?id=<?php echo $report['id']; ?>"
-                                class="btn btn-sm btn-success"
-                                target="_blank"
-                            >
-                                <i class="fas fa-file-contract me-1"></i>Resolution Report
+                            <a href="resolution_report.php?id=<?php echo $report['id']; ?>" class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition" target="_blank">
+                                <i class="fas fa-file-contract"></i>Resolution Report
                             </a>
                         <?php endif; ?>
                     </div>
@@ -310,142 +320,101 @@ include '../views/header.php';
                 </div>
             <?php endif; ?>
 
-            <div class="row">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <!-- Report Details -->
-                <div class="col-lg-8">
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h5 class="mb-0">
-                                <i class="fas fa-info-circle me-2"></i>Report Details
-                            </h5>
+                <div class="lg:col-span-2 space-y-4">
+                    <div class="card">
+                        <div class="card-header flex items-center gap-2">
+                            <i class="fas fa-info-circle text-slate-400"></i>
+                            <span>Report Details</span>
                         </div>
                         <div class="card-body">
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <strong>Title:</strong><br>
-                                    <?php echo htmlspecialchars($report['title']); ?>
+                            <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                                <div>
+                                    <dt class="text-xs uppercase tracking-wider text-slate-500 font-medium mb-1">Date &amp; Time</dt>
+                                    <dd class="text-sm text-slate-900">
+                                        <?php echo format_date($report['incident_date']); ?>
+                                        <span class="text-slate-500">at <?php echo date('g:i A', strtotime($report['incident_time'])); ?></span>
+                                    </dd>
                                 </div>
-                                <div class="col-md-6">
-                                    <strong>Category:</strong><br>
-                                    <span class="badge bg-info"><?php echo $report['category']; ?></span>
+                                <div>
+                                    <dt class="text-xs uppercase tracking-wider text-slate-500 font-medium mb-1">Location</dt>
+                                    <dd class="text-sm text-slate-900"><?php echo htmlspecialchars($report['location']); ?></dd>
                                 </div>
-                            </div>
-
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <strong>Severity:</strong><br>
-                                    <span
-                                        class="badge <?php echo get_severity_badge_class($report['severity_level']); ?>">
-                                        <?php echo $report['severity_level']; ?>
-                                    </span>
+                                <div>
+                                    <dt class="text-xs uppercase tracking-wider text-slate-500 font-medium mb-1">Assigned Organization</dt>
+                                    <dd class="text-sm text-slate-900">
+                                        <?php echo htmlspecialchars($report['org_name']); ?>
+                                        <span class="block text-xs text-slate-500"><?php echo $report['org_type']; ?></span>
+                                    </dd>
                                 </div>
-                                <div class="col-md-6">
-                                    <strong>Status:</strong><br>
-                                    <span class="badge <?php echo get_status_badge_class($report['status']); ?>">
-                                        <?php echo $report['status']; ?>
-                                    </span>
+                                <div>
+                                    <dt class="text-xs uppercase tracking-wider text-slate-500 font-medium mb-1">Reported By</dt>
+                                    <dd class="text-sm text-slate-900">
+                                        <?php echo htmlspecialchars($report['reporter_name']); ?>
+                                        <?php if (!empty($report['reporter_contact_number'])): ?>
+                                            <span class="block text-xs text-slate-500">
+                                                <i class="fas fa-phone me-1"></i><?php echo htmlspecialchars($report['reporter_contact_number']); ?>
+                                            </span>
+                                        <?php endif; ?>
+                                    </dd>
                                 </div>
-                                <?php if (!empty($report['priority_number'])): ?>
-                                <div class="col-md-6">
-                                    <strong>Priority Number:</strong><br>
-                                    <span class="badge bg-success">#<?php echo (int)$report['priority_number']; ?></span>
+                                <?php if (!empty($report['assigned_member_name'])): ?>
+                                <div class="sm:col-span-2">
+                                    <dt class="text-xs uppercase tracking-wider text-slate-500 font-medium mb-1">Assigned Member</dt>
+                                    <dd>
+                                        <span class="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 border border-blue-200">
+                                            <i class="fas fa-user"></i><?php echo htmlspecialchars($report['assigned_member_name']); ?>
+                                        </span>
+                                    </dd>
                                 </div>
                                 <?php endif; ?>
-                            </div>
+                            </dl>
 
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <strong>Date & Time:</strong><br>
-                                    <?php echo format_date($report['incident_date']); ?> at
-                                    <?php echo date('g:i A', strtotime($report['incident_time'])); ?>
-                                </div>
-                                <div class="col-md-6">
-                                    <strong>Location:</strong><br>
-                                    <?php echo htmlspecialchars($report['location']); ?>
-                                </div>
-                            </div>
-
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <strong>Assigned Organization:</strong><br>
-                                    <?php echo htmlspecialchars($report['org_name']); ?>
-                                    <small class="text-muted d-block"><?php echo $report['org_type']; ?></small>
-                                </div>
-                                <div class="col-md-6">
-                                    <strong>Reported By:</strong><br>
-                                    <?php echo htmlspecialchars($report['reporter_name']); ?>
-                                    <?php if (!empty($report['reporter_contact_number'])): ?>
-                                        <small class="text-muted d-block">
-                                            <i class="fas fa-phone me-1"></i><?php echo htmlspecialchars($report['reporter_contact_number']); ?>
-                                        </small>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                            
-                            <?php if (!empty($report['assigned_member_name'])): ?>
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <strong>Assigned Member:</strong><br>
-                                    <span class="badge bg-primary">
-                                        <i class="fas fa-user me-1"></i><?php echo htmlspecialchars($report['assigned_member_name']); ?>
-                                    </span>
-                                </div>
-                            </div>
-                            <?php endif; ?>
-
-                            <div class="mb-3">
-                                <strong>Description:</strong><br>
-                                <div class="border rounded p-3 bg-light">
+                            <div class="mt-6">
+                                <dt class="text-xs uppercase tracking-wider text-slate-500 font-medium mb-2">Description</dt>
+                                <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 leading-relaxed">
                                     <?php echo nl2br(htmlspecialchars($report['description'])); ?>
                                 </div>
                             </div>
 
-                            <div class="text-muted">
-                                <small>
-                                    <i class="fas fa-clock me-1"></i>
-                                    Created: <?php echo format_datetime($report['created_at']); ?>
-                                </small>
+                            <div class="mt-5 text-xs text-slate-500 flex items-center gap-1.5">
+                                <i class="fas fa-clock"></i>
+                                Created: <?php echo format_datetime($report['created_at']); ?>
                             </div>
                         </div>
+                    </div>
 
                     <?php if (!is_null($report['latitude']) && !is_null($report['longitude'])): ?>
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h5 class="mb-0">
-                                <i class="fas fa-map-marker-alt me-2"></i>Incident Location Map
-                            </h5>
+                    <div class="card">
+                        <div class="card-header flex items-center gap-2">
+                            <i class="fas fa-map-marker-alt text-slate-400"></i>
+                            <span>Incident Location</span>
                         </div>
                         <div class="card-body">
-                            <div
-                                id="incident-map-view"
-                                style="height: 320px; border-radius: 0.5rem; overflow: hidden; border: 1px solid rgba(0,0,0,0.1);"
-                            ></div>
+                            <div id="incident-map-view" style="height: 320px; border-radius: 0.5rem; overflow: hidden; border: 1px solid #e2e8f0;"></div>
                         </div>
                     </div>
                     <?php endif; ?>
-                    </div>
 
                     <!-- Photos -->
                     <?php if (!empty($photos)): ?>
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h5 class="mb-0">
-                                <i class="fas fa-images me-2"></i>Photos (<?php echo count($photos); ?>)
-                            </h5>
+                    <div class="card">
+                        <div class="card-header flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-images text-slate-400"></i>
+                                <span>Photos</span>
+                            </div>
+                            <span class="badge bg-secondary"><?php echo count($photos); ?></span>
                         </div>
                         <div class="card-body">
-                            <div class="row">
+                            <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
                                 <?php foreach ($photos as $photo): ?>
-                                <div class="col-md-4 mb-3">
-                                    <div class="card">
-                                        <img src="<?php echo BASE_URL . $photo['file_path']; ?>" class="card-img-top"
-                                            style="height: 200px; object-fit: cover;"
-                                            onclick="openImageModal('<?php echo BASE_URL . $photo['file_path']; ?>')">
-                                        <div class="card-body p-2">
-                                            <small class="text-muted">
-                                                <?php echo format_datetime($photo['uploaded_at']); ?>
-                                            </small>
-                                        </div>
+                                <div class="group rounded-lg overflow-hidden border border-slate-200 cursor-pointer hover:shadow-card transition" onclick="openImageModal('<?php echo BASE_URL . $photo['file_path']; ?>')">
+                                    <img src="<?php echo BASE_URL . $photo['file_path']; ?>"
+                                         class="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-300">
+                                    <div class="px-3 py-2 text-xs text-slate-500">
+                                        <?php echo format_datetime($photo['uploaded_at']); ?>
                                     </div>
                                 </div>
                                 <?php endforeach; ?>
@@ -456,15 +425,17 @@ include '../views/header.php';
 
                     <!-- Witnesses -->
                     <?php if (!empty($witnesses)): ?>
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h5 class="mb-0">
-                                <i class="fas fa-users me-2"></i>Witnesses (<?php echo count($witnesses); ?>)
-                            </h5>
+                    <div class="card">
+                        <div class="card-header flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-users text-slate-400"></i>
+                                <span>Witnesses</span>
+                            </div>
+                            <span class="badge bg-secondary"><?php echo count($witnesses); ?></span>
                         </div>
-                        <div class="card-body">
+                        <div class="card-body p-0">
                             <div class="table-responsive">
-                                <table class="table table-sm">
+                                <table class="table mb-0">
                                     <thead>
                                         <tr>
                                             <th>Name</th>
@@ -475,9 +446,9 @@ include '../views/header.php';
                                     <tbody>
                                         <?php foreach ($witnesses as $witness): ?>
                                         <tr>
-                                            <td><?php echo htmlspecialchars($witness['witness_name']); ?></td>
-                                            <td><?php echo htmlspecialchars($witness['witness_contact']); ?></td>
-                                            <td><?php echo format_datetime($witness['created_at']); ?></td>
+                                            <td class="text-sm text-slate-900"><?php echo htmlspecialchars($witness['witness_name']); ?></td>
+                                            <td class="text-sm text-slate-700"><?php echo htmlspecialchars($witness['witness_contact']); ?></td>
+                                            <td class="text-xs text-slate-500"><?php echo format_datetime($witness['created_at']); ?></td>
                                         </tr>
                                         <?php endforeach; ?>
                                     </tbody>
@@ -489,66 +460,71 @@ include '../views/header.php';
                 </div>
 
                 <!-- Updates, Resolution, and Comments -->
-                <div class="col-lg-4">
+                <div class="space-y-4">
                     <?php if ($member_can_resolve): ?>
                     <!-- Member Resolve Card -->
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h6 class="mb-0">
-                                <i class="fas fa-check-circle me-2"></i>Resolve This Issue
-                            </h6>
+                    <div class="card border-emerald-200">
+                        <div class="card-header flex items-center gap-2 bg-emerald-50">
+                            <i class="fas fa-check-circle text-emerald-600"></i>
+                            <span class="text-emerald-700">Resolve This Issue</span>
                         </div>
                         <div class="card-body">
-                            <form method="POST">
+                            <form method="POST" class="space-y-3">
                                 <input type="hidden" name="action" value="member_resolve">
-                                <div class="mb-3">
-                                    <label for="resolution_reason" class="form-label">Resolution Reason *</label>
-                                    <textarea
-                                        class="form-control"
-                                        id="resolution_reason"
-                                        name="resolution_reason"
-                                        rows="3"
-                                        placeholder="Describe what you did to resolve this issue..."
-                                        required
-                                    ></textarea>
+                                <div>
+                                    <label for="resolution_reason" class="form-label">Resolution Reason <span class="text-red-500">*</span></label>
+                                    <textarea class="form-control" id="resolution_reason" name="resolution_reason" rows="3"
+                                              placeholder="Describe what you did to resolve this issue..." required></textarea>
                                 </div>
-                                <button type="submit" class="btn btn-success w-100">
-                                    <i class="fas fa-check me-1"></i>Mark as Resolved
+                                <button type="submit" class="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition">
+                                    <i class="fas fa-check"></i>Mark as Resolved
                                 </button>
                             </form>
                         </div>
                     </div>
                     <?php endif; ?>
 
-                    <!-- Updates -->
-                    <div class="card mb-4">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h6 class="mb-0">
-                                <i class="fas fa-history me-2"></i>Updates (<?php echo count($updates); ?>)
-                            </h6>
+                    <!-- Updates (Activity Timeline) -->
+                    <div class="card">
+                        <div class="card-header flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-history text-slate-400"></i>
+                                <span>Updates</span>
+                            </div>
+                            <span class="badge bg-secondary"><?php echo count($updates); ?></span>
                         </div>
                         <div class="card-body" style="max-height: 400px; overflow-y: auto;">
                             <?php if (empty($updates)): ?>
-                            <p class="text-muted text-center">No updates yet.</p>
+                                <p class="text-sm text-slate-500 text-center py-4">No updates yet.</p>
                             <?php else: ?>
-                            <?php foreach ($updates as $update): ?>
-                            <div class="border-start border-primary border-3 ps-3 mb-3">
-                                <div class="fw-bold"><?php echo htmlspecialchars($update['updated_by_name']); ?></div>
-                                <div class="text-muted small"><?php echo format_datetime($update['created_at']); ?>
-                                </div>
-                                <div class="mt-1"><?php echo nl2br(htmlspecialchars($update['update_text'])); ?></div>
-                            </div>
-                            <?php endforeach; ?>
+                            <ul class="space-y-4">
+                                <?php foreach ($updates as $update): ?>
+                                <li class="flex gap-3">
+                                    <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-900 text-white text-xs font-semibold">
+                                        <?php echo strtoupper(substr($update['updated_by_name'] ?: 'S', 0, 1)); ?>
+                                    </span>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-sm font-medium text-slate-900 truncate"><?php echo htmlspecialchars($update['updated_by_name']); ?></span>
+                                            <span class="text-xs text-slate-500"><?php echo format_datetime($update['created_at']); ?></span>
+                                        </div>
+                                        <p class="mt-1 text-sm text-slate-700"><?php echo nl2br(htmlspecialchars($update['update_text'])); ?></p>
+                                    </div>
+                                </li>
+                                <?php endforeach; ?>
+                            </ul>
                             <?php endif; ?>
                         </div>
                         <?php if (!$is_guest_access && (isset($_SESSION['user_role']) && $_SESSION['user_role'] == 'Admin' || (isset($_SESSION['user_role']) && $_SESSION['user_role'] == 'Organization Account' && $report['organization_id'] == $_SESSION['organization_id']))): ?>
                         <div class="card-footer">
-                            <form method="POST" class="d-flex gap-2">
+                            <form method="POST" class="space-y-2">
                                 <input type="hidden" name="action" value="add_update">
-                                <textarea class="form-control" name="update_text" placeholder="Add update..." rows="2"
-                                    required></textarea>
-                                <button class="btn btn-primary" type="submit"><i
-                                        class="fas fa-paper-plane"></i></button>
+                                <textarea class="form-control" name="update_text" placeholder="Add update..." rows="2" required></textarea>
+                                <div class="flex justify-end">
+                                    <button class="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800 transition" type="submit">
+                                        <i class="fas fa-paper-plane"></i>Post Update
+                                    </button>
+                                </div>
                             </form>
                         </div>
                         <?php endif; ?>
@@ -556,40 +532,51 @@ include '../views/header.php';
 
                     <!-- Comments -->
                     <div class="card">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h6 class="mb-0">
-                                <i class="fas fa-comments me-2"></i>Comments (<?php echo count($comments); ?>)
-                            </h6>
+                        <div class="card-header flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-comments text-slate-400"></i>
+                                <span>Comments</span>
+                            </div>
+                            <span class="badge bg-secondary"><?php echo count($comments); ?></span>
                         </div>
                         <div class="card-body" style="max-height: 400px; overflow-y: auto;">
                             <?php if (empty($comments)): ?>
-                            <p class="text-muted text-center">No comments yet.</p>
+                                <p class="text-sm text-slate-500 text-center py-4">No comments yet.</p>
                             <?php else: ?>
-                            <?php foreach ($comments as $comment): ?>
-                            <div class="border-start border-secondary border-3 ps-3 mb-3">
-                                <div class="fw-bold"><?php echo htmlspecialchars($comment['commented_by_name']); ?>
-                                </div>
-                                <div class="text-muted small"><?php echo format_datetime($comment['created_at']); ?>
-                                </div>
-                                <div class="mt-1"><?php echo nl2br(htmlspecialchars($comment['comment_text'])); ?></div>
-                            </div>
-                            <?php endforeach; ?>
+                            <ul class="space-y-4">
+                                <?php foreach ($comments as $comment): ?>
+                                <li class="flex gap-3">
+                                    <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-200 text-slate-700 text-xs font-semibold">
+                                        <?php echo strtoupper(substr($comment['commented_by_name'] ?: 'A', 0, 1)); ?>
+                                    </span>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-sm font-medium text-slate-900 truncate"><?php echo htmlspecialchars($comment['commented_by_name']); ?></span>
+                                            <span class="text-xs text-slate-500"><?php echo format_datetime($comment['created_at']); ?></span>
+                                        </div>
+                                        <p class="mt-1 text-sm text-slate-700"><?php echo nl2br(htmlspecialchars($comment['comment_text'])); ?></p>
+                                    </div>
+                                </li>
+                                <?php endforeach; ?>
+                            </ul>
                             <?php endif; ?>
                         </div>
                         <?php if ($is_guest_access || (isset($_SESSION['user_role']) && $_SESSION['user_role'] == 'Admin') || (isset($_SESSION['user_role']) && $_SESSION['user_role'] == 'Organization Account' && $report['organization_id'] == $_SESSION['organization_id'])): ?>
                         <div class="card-footer">
-                            <form method="POST" class="d-flex gap-2">
+                            <form method="POST" class="space-y-2">
                                 <input type="hidden" name="action" value="add_comment">
                                 <?php if ($is_guest_access): ?>
                                     <input type="text" class="form-control" name="commenter_name"
-                                        placeholder="Your name..." required style="max-width: 150px;"
+                                        placeholder="Your name..." required
                                         value="<?php echo htmlspecialchars($report['reported_by']); ?>"
                                         readonly>
                                 <?php endif; ?>
-                                <input type="text" class="form-control" name="comment_text"
-                                    placeholder="Write a comment..." required>
-                                <button class="btn btn-outline-secondary" type="submit"><i
-                                        class="fas fa-paper-plane"></i></button>
+                                <input type="text" class="form-control" name="comment_text" placeholder="Write a comment..." required>
+                                <div class="flex justify-end">
+                                    <button class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition" type="submit">
+                                        <i class="fas fa-paper-plane text-slate-400"></i>Comment
+                                    </button>
+                                </div>
                             </form>
                         </div>
                         <?php endif; ?>

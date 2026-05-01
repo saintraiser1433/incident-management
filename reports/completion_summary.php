@@ -165,28 +165,24 @@ function month_name($m) {
 ?>
 
 <div class="container-fluid completion-summary-page">
-    <div class="row">
+    <div class="row g-0">
         <?php include '../views/sidebar.php'; ?>
 
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
-            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h1 class="h2">
-                    <i class="fas fa-chart-pie me-2"></i>Completion Summary
-                </h1>
-                <div class="btn-toolbar mb-2 mb-md-0 no-print">
-                    <div class="btn-group me-2">
-                        <button onclick="window.print();" class="btn btn-sm btn-outline-secondary">
-                            <i class="fas fa-print me-1"></i>Print / Export
-                        </button>
-                    </div>
+        <main class="col-md-9 ms-sm-auto col-lg-10 main-content">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-5 mb-6 border-b border-slate-200">
+                <div>
+                    <h1 class="text-2xl font-semibold tracking-tight text-slate-900">Completion Summary</h1>
+                    <p class="text-sm text-slate-500 mt-1">Monthly and yearly snapshot of resolved incidents.</p>
                 </div>
+                <button onclick="window.print();" class="no-print inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition">
+                    <i class="fas fa-print text-slate-400"></i>Print / Export
+                </button>
             </div>
 
-            <div class="card mb-3 no-print">
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-filter me-2"></i>Filters
-                    </h5>
+            <div class="card mb-4 no-print">
+                <div class="card-header flex items-center gap-2">
+                    <i class="fas fa-filter text-slate-400"></i>
+                    <span>Filters</span>
                 </div>
                 <div class="card-body">
                     <form method="GET" class="row g-3 align-items-end">
@@ -227,7 +223,7 @@ function month_name($m) {
                                             value="<?php echo $org['id']; ?>"
                                             <?php echo ($selected_org_id && (int) $selected_org_id === (int) $org['id']) ? 'selected' : ''; ?>
                                         >
-                                            <?php echo htmlspecialchars($org['org_name']); ?>
+                                            <?php echo htmlspecialchars($org['org_name'] ?? ''); ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
@@ -282,7 +278,7 @@ function month_name($m) {
                                             break;
                                         }
                                     }
-                                    echo htmlspecialchars($orgName);
+                                    echo htmlspecialchars($orgName ?? '');
                                     ?>
                                 </p>
                             <?php elseif (!$is_admin): ?>
@@ -336,7 +332,7 @@ function month_name($m) {
                                                     : 0;
                                             ?>
                                                 <tr>
-                                                    <td><?php echo htmlspecialchars($row['severity_level']); ?></td>
+                                                    <td><?php echo htmlspecialchars($row['severity_level'] ?? ''); ?></td>
                                                     <td class="text-end"><?php echo (int) $row['total']; ?></td>
                                                     <td class="text-end"><?php echo (int) $row['completed']; ?></td>
                                                     <td class="text-end"><?php echo $rate; ?>%</td>
@@ -389,7 +385,7 @@ function month_name($m) {
                                                     : 0;
                                             ?>
                                                 <tr>
-                                                    <td><?php echo htmlspecialchars($row['category']); ?></td>
+                                                    <td><?php echo htmlspecialchars($row['category'] ?? ''); ?></td>
                                                     <td class="text-end"><?php echo (int) $row['total']; ?></td>
                                                     <td class="text-end"><?php echo (int) $row['completed']; ?></td>
                                                     <td class="text-end"><?php echo $rate; ?>%</td>
@@ -430,7 +426,7 @@ function month_name($m) {
                                                         : 0;
                                                 ?>
                                                     <tr>
-                                                        <td><?php echo htmlspecialchars($row['org_name']); ?></td>
+                                                        <td><?php echo htmlspecialchars($row['org_name'] ?? ''); ?></td>
                                                         <td class="text-end"><?php echo (int) $row['total']; ?></td>
                                                         <td class="text-end"><?php echo (int) $row['completed']; ?></td>
                                                         <td class="text-end"><?php echo $rate; ?>%</td>

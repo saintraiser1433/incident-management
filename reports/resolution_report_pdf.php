@@ -1,6 +1,6 @@
 <?php
 /**
- * Incident Resolution Report - PDF Export
+ * Incident Record Form (IRF) — PDF aligned with PNP IRF layout
  */
 
 require_once '../config/config.php';
@@ -16,17 +16,41 @@ if (!$report_id) {
 
 require_login();
 
+function irf_h($s)
+{
+    return htmlspecialchars((string) ($s ?? ''), ENT_QUOTES, 'UTF-8');
+}
+
+function _img_data_uri($absPath)
+{
+    if (!$absPath || !is_file($absPath)) {
+        return null;
+    }
+    $mime = function_exists('mime_content_type') ? @mime_content_type($absPath) : null;
+    if (!$mime) {
+        $ext = strtolower(pathinfo($absPath, PATHINFO_EXTENSION));
+        $mime = $ext === 'png' ? 'image/png'
+            : ($ext === 'gif' ? 'image/gif'
+            : ($ext === 'webp' ? 'image/webp' : 'image/jpeg'));
+    }
+    $bin = @file_get_contents($absPath);
+    if ($bin === false) {
+        return null;
+    }
+    return 'data:' . $mime . ';base64,' . base64_encode($bin);
+}
+
 $database = new Database();
 $db = $database->getConnection();
 
-// Load core report details including org and queue info
-$query = "SELECT ir.*, ir.reported_by as reporter_name, ir.reporter_contact_number,
-                 ir.family_contact_name, ir.family_contact_number, ir.resolution_notes,
-                 o.org_name, o.org_type, rq.priority_number, rq.assigned_to,
+$query = "SELECT ir.*, ir.resolution_notes,
+                 o.org_name, o.org_type, o.address as org_address,
+                 o.contact_number as org_contact, o.logo_path as org_logo_path,
+                 rq.priority_number, rq.assigned_to,
                  om.name as assigned_member_name
-          FROM incident_reports ir 
-          LEFT JOIN organizations o ON ir.organization_id = o.id 
-          LEFT JOIN report_queue rq ON rq.report_id = ir.id 
+          FROM incident_reports ir
+          LEFT JOIN organizations o ON ir.organization_id = o.id
+          LEFT JOIN report_queue rq ON rq.report_id = ir.id
           LEFT JOIN organization_members om ON rq.assigned_to = om.id
           WHERE ir.id = ?";
 $stmt = $db->prepare($query);
@@ -37,41 +61,48 @@ if (!$report) {
     redirect('index.php?error=report_not_found');
 }
 
-// Only allow Admin or owning organization to view
 if ($_SESSION['user_role'] === 'Organization Account' && $report['organization_id'] != $_SESSION['organization_id']) {
     redirect('index.php?error=access_denied');
 }
 
-// Only generate for Resolved / Closed
+if ($_SESSION['user_role'] === 'Organization Member') {
+    try {
+        $memberStmt = $db->prepare('SELECT id FROM organization_members WHERE user_id = ? AND organization_id = ?');
+        $memberStmt->execute([$_SESSION['user_id'], $report['organization_id']]);
+        $member = $memberStmt->fetch();
+        if (!$member || (int) $report['assigned_to'] !== (int) $member['id']) {
+            redirect('index.php?error=access_denied');
+        }
+    } catch (Exception $e) {
+        redirect('index.php?error=access_denied');
+    }
+}
+
 if (!in_array($report['status'], ['Resolved', 'Closed'], true)) {
     redirect('view.php?id=' . urlencode($report_id) . '&error=not_resolved');
 }
 
-// Load photos
-$photoStmt = $db->prepare("SELECT * FROM incident_photos WHERE report_id = ? ORDER BY uploaded_at");
+$photoStmt = $db->prepare('SELECT * FROM incident_photos WHERE report_id = ? ORDER BY uploaded_at');
 $photoStmt->execute([$report_id]);
 $photos = $photoStmt->fetchAll();
 
-// Load witnesses
-$witnessStmt = $db->prepare("SELECT * FROM incident_witnesses WHERE report_id = ? ORDER BY created_at");
+$witnessStmt = $db->prepare('SELECT * FROM incident_witnesses WHERE report_id = ? ORDER BY created_at');
 $witnessStmt->execute([$report_id]);
-$witnesses = $witnessStmt->fetchAll();
+$victims = $witnessStmt->fetchAll();
 
-// Load updates in chronological order
-$updatesStmt = $db->prepare("
+$updatesStmt = $db->prepare('
     SELECT iu.*, u.name AS updated_by_name
     FROM incident_updates iu
     LEFT JOIN users u ON iu.updated_by = u.id
     WHERE iu.report_id = ?
     ORDER BY iu.created_at ASC
-");
+');
 $updatesStmt->execute([$report_id]);
 $updates = $updatesStmt->fetchAll();
 
-// Determine resolution date (first time status changed to Resolved/Closed)
 $resolutionDate = null;
 foreach ($updates as $u) {
-    if (strpos($u['update_text'], "Status changed from") !== false &&
+    if (strpos($u['update_text'], 'Status changed from') !== false &&
         (strpos($u['update_text'], "to 'Resolved'") !== false || strpos($u['update_text'], "to 'Closed'") !== false)) {
         $resolutionDate = $u['created_at'];
         break;
@@ -81,171 +112,80 @@ if (!$resolutionDate) {
     $resolutionDate = $report['created_at'];
 }
 
-// Build simple HTML for PDF (no external CSS)
+$pnp_logo_abs = realpath(__DIR__ . '/../assets/images/pnplogo.png');
+$pnp_logo_src = _img_data_uri($pnp_logo_abs);
+
+$org_logo_src = null;
+if (!empty($report['org_logo_path'])) {
+    $org_logo_abs = realpath(__DIR__ . '/../' . $report['org_logo_path']);
+    $org_logo_src = _img_data_uri($org_logo_abs);
+}
+
+$orgIdPart = !empty($report['organization_id']) ? str_pad((string) (int) $report['organization_id'], 3, '0', STR_PAD_LEFT) : '000';
+$createdTs = !empty($report['created_at']) ? strtotime($report['created_at']) : time();
+$irf_entry = $orgIdPart . '-' . date('Ym', $createdTs) . '-' . str_pad((string) (int) $report['id'], 6, '0', STR_PAD_LEFT);
+
+$dt_reported = !empty($report['created_at']) ? date('Y-m-d H:i:s', strtotime($report['created_at'])) : '';
+$dt_incident = '';
+if (!empty($report['incident_date'])) {
+    $dt_incident = $report['incident_date'];
+    if (!empty($report['incident_time'])) {
+        $dt_incident .= ' ' . $report['incident_time'];
+    }
+}
+
+$type_label = trim(($report['category'] ?? '') . ' — ' . ($report['title'] ?? ''));
+
+$narrative_body = trim((string) ($report['description'] ?? ''));
+$resolv_extra = '';
+if (!empty($report['resolution_notes'])) {
+    $resolv_extra = "\n\n--- RESOLUTION / ACTION TAKEN ---\n" . trim((string) $report['resolution_notes']);
+} elseif (!empty($updates)) {
+    $lastText = $updates[count($updates) - 1]['update_text'] ?? '';
+    if ($lastText !== '') {
+        $resolv_extra = "\n\n--- LAST SYSTEM UPDATE ---\n" . $lastText;
+    }
+}
+
+$pnp_instruction = 'This Incident Record Form is extracted from the electronic incident management system. '
+    . 'For inquiries regarding this entry, contact the station listed at the bottom of page 2. '
+    . 'PNP DIDM reference information may be found at www.didm.pnp.gov.ph.';
+
+$irf_pdf_partial = __DIR__ . '/partials/irf_pdf_body.php';
+
+$irf_copy_for = 'PERSONAL COPY';
 ob_start();
-?>
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Resolution Report #<?php echo (int)$report['id']; ?></title>
-    <style>
-        body { font-family: sans-serif; font-size: 11pt; }
-        h1, h2, h3, h4, h5 { margin: 0 0 6px; }
-        .header { border-bottom: 1px solid #999; margin-bottom: 12px; padding-bottom: 6px; }
-        .section { margin-bottom: 10px; }
-        .label { font-weight: bold; }
-        .table { width: 100%; border-collapse: collapse; }
-        .table th, .table td { border: 1px solid #ccc; padding: 4px 6px; font-size: 10pt; }
-        .small { font-size: 9pt; color: #555; }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h2><?php echo htmlspecialchars(APP_NAME); ?></h2>
-        <div class="small">Incident Resolution Report</div>
-        <div style="text-align:right;">
-            <span class="label">Report #:</span> <?php echo (int)$report['id']; ?><br>
-            <span class="label">Status:</span> <?php echo htmlspecialchars($report['status']); ?>
-        </div>
-    </div>
+require $irf_pdf_partial;
+$html_personal = ob_get_clean();
 
-    <div class="section">
-        <h3>Incident Details</h3>
-        <div><span class="label">Title:</span> <?php echo htmlspecialchars($report['title']); ?></div>
-        <div>
-            <span class="label">Date &amp; Time:</span>
-            <?php echo format_date($report['incident_date']); ?>
-            at <?php echo date('g:i A', strtotime($report['incident_time'])); ?>
-        </div>
-        <div><span class="label">Location:</span> <?php echo htmlspecialchars($report['location']); ?></div>
-        <div><span class="label">Category:</span> <?php echo htmlspecialchars($report['category']); ?></div>
-        <div><span class="label">Severity:</span> <?php echo htmlspecialchars($report['severity_level']); ?></div>
-    </div>
-
-    <div class="section">
-        <h3>Parties Involved</h3>
-        <div>
-            <span class="label">Assigned Organization:</span>
-            <?php echo htmlspecialchars($report['org_name']); ?>
-            (<?php echo htmlspecialchars($report['org_type']); ?>)
-        </div>
-        <?php if (!empty($report['assigned_member_name'])): ?>
-            <div><span class="label">Assigned Member:</span> <?php echo htmlspecialchars($report['assigned_member_name']); ?></div>
-        <?php endif; ?>
-        <div>
-            <span class="label">Reporter:</span>
-            <?php echo htmlspecialchars($report['reporter_name']); ?>
-            <?php if (!empty($report['reporter_contact_number'])): ?>
-                (<?php echo htmlspecialchars($report['reporter_contact_number']); ?>)
-            <?php endif; ?>
-        </div>
-        <?php if (!empty($report['family_contact_name']) || !empty($report['family_contact_number'])): ?>
-            <div>
-                <span class="label">Family / Emergency Contact:</span>
-                <?php echo htmlspecialchars($report['family_contact_name'] ?? ''); ?>
-                <?php if (!empty($report['family_contact_number'])): ?>
-                    (<?php echo htmlspecialchars($report['family_contact_number']); ?>)
-                <?php endif; ?>
-            </div>
-        <?php endif; ?>
-    </div>
-
-    <div class="section">
-        <h3>Incident Description</h3>
-        <div><?php echo nl2br(htmlspecialchars($report['description'])); ?></div>
-    </div>
-
-    <div class="section">
-        <h3>Resolution Summary</h3>
-        <div>
-            <?php
-            if (!empty($report['resolution_notes'])) {
-                echo nl2br(htmlspecialchars($report['resolution_notes']));
-            } else {
-                $lastText = '';
-                if (!empty($updates)) {
-                    $lastText = $updates[count($updates) - 1]['update_text'];
-                }
-                echo nl2br(htmlspecialchars($lastText ?: 'No dedicated resolution notes recorded.'));
-            }
-            ?>
-        </div>
-    </div>
-
-    <div class="section">
-        <h3>Timeline Summary</h3>
-        <div><span class="label">Reported On:</span> <?php echo format_datetime($report['created_at']); ?></div>
-        <div><span class="label">Resolved On:</span> <?php echo format_datetime($resolutionDate); ?></div>
-        <div><span class="label">Total Updates:</span> <?php echo count($updates); ?></div>
-    </div>
-
-    <?php if (!empty($updates)): ?>
-        <div class="section">
-            <h3>Detailed Updates Timeline</h3>
-            <?php foreach ($updates as $update): ?>
-                <div class="small">
-                    <?php echo format_datetime($update['created_at']); ?>
-                    • <?php echo htmlspecialchars($update['updated_by_name'] ?? 'System'); ?>
-                </div>
-                <div><?php echo nl2br(htmlspecialchars($update['update_text'])); ?></div>
-                <br>
-            <?php endforeach; ?>
-        </div>
-    <?php endif; ?>
-
-    <?php if (!empty($witnesses)): ?>
-        <div class="section">
-            <h3>Witnesses</h3>
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Contact</th>
-                        <th>Recorded On</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($witnesses as $w): ?>
-                        <tr>
-                            <td><?php echo htmlspecialchars($w['witness_name']); ?></td>
-                            <td><?php echo htmlspecialchars($w['witness_contact']); ?></td>
-                            <td><?php echo format_datetime($w['created_at']); ?></td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
-    <?php endif; ?>
-
-    <div class="section">
-        <h3>Sign-off</h3>
-        <p class="label">Prepared By:</p>
-        <div style="border-bottom: 1px solid #000; height: 24px; margin-bottom: 4px;"></div>
-        <div class="small">Name &amp; Signature</div>
-        <p class="small" style="margin-top:8px;">
-            Date Generated: <?php echo format_datetime(date('Y-m-d H:i:s')); ?>
-        </p>
-    </div>
-</body>
-</html>
-<?php
-
-$html = ob_get_clean();
+$irf_copy_for = 'ORGANIZATION COPY';
+ob_start();
+require $irf_pdf_partial;
+$html_organization = ob_get_clean();
 
 $mpdf = new Mpdf([
     'format' => 'A4',
-    'margin_left' => 15,
-    'margin_right' => 15,
-    'margin_top' => 15,
-    'margin_bottom' => 15,
+    'margin_left' => 10,
+    'margin_right' => 10,
+    'margin_top' => 10,
+    'margin_bottom' => 10,
 ]);
 
-$mpdf->SetTitle('Resolution Report #' . (int)$report['id']);
-$mpdf->WriteHTML($html);
+$mpdf->showWatermarkText = true;
+$mpdf->watermarkTextAlpha = 0.09;
+$mpdf->watermarkAngle = 33;
+$mpdf->watermark_size = 88;
 
-$filename = 'resolution_report_' . (int)$report['id'] . '.pdf';
+$mpdf->SetTitle('IRF ' . $irf_entry . ' — Personal & Organization copies');
+
+$mpdf->SetWatermarkText('PERSONAL COPY', 0.09);
+$mpdf->WriteHTML($html_personal);
+
+$mpdf->AddPage();
+$mpdf->SetWatermarkText('ORGANIZATION COPY', 0.09);
+$mpdf->WriteHTML($html_organization);
+
+$filename = 'IRF_' . preg_replace('/[^A-Za-z0-9_-]/', '_', $irf_entry) . '_two_copies.pdf';
 $mpdf->Output($filename, \Mpdf\Output\Destination::INLINE);
 
 exit;
-

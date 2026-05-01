@@ -264,21 +264,18 @@ $members = $stmt->fetchAll();
 ?>
 
 <div class="container-fluid">
-    <div class="row">
+    <div class="row g-0">
         <?php include '../views/sidebar.php'; ?>
-        
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
-            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h1 class="h2">
-                    <i class="fas fa-users me-2"></i>Organization Members
-                </h1>
-                <div class="btn-toolbar mb-2 mb-md-0">
-                    <div class="btn-group me-2">
-                        <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#createModal">
-                            <i class="fas fa-plus me-1"></i>Add Member
-                        </button>
-                    </div>
+
+        <main class="col-md-9 ms-sm-auto col-lg-10 main-content">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-5 mb-6 border-b border-slate-200">
+                <div>
+                    <h1 class="text-2xl font-semibold tracking-tight text-slate-900">Organization Members</h1>
+                    <p class="text-sm text-slate-500 mt-1">Add, edit and assign team members.</p>
                 </div>
+                <button type="button" class="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 transition" data-bs-toggle="modal" data-bs-target="#createModal">
+                    <i class="fas fa-plus"></i>Add Member
+                </button>
             </div>
             
             <?php if ($success_message): ?>

@@ -114,194 +114,117 @@ $hourly_data = $stmt->fetchAll();
 ?>
 
 <div class="container-fluid">
-    <div class="row">
+    <div class="row g-0">
         <?php include '../views/sidebar.php'; ?>
-        
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
-            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h1 class="h2">
-                    <i class="fas fa-chart-bar me-2"></i>Analytics Dashboard
-                </h1>
-                <div class="btn-toolbar mb-2 mb-md-0">
-                    <div class="btn-group me-2">
-                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="exportAnalytics()">
-                            <i class="fas fa-download me-1"></i>Export Data
-                        </button>
-                    </div>
+
+        <main class="col-md-9 ms-sm-auto col-lg-10 main-content">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-5 mb-6 border-b border-slate-200">
+                <div>
+                    <h1 class="text-2xl font-semibold tracking-tight text-slate-900">Analytics Dashboard</h1>
+                    <p class="text-sm text-slate-500 mt-1">Visual insights into incident reports and response performance.</p>
                 </div>
+                <button type="button" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition" onclick="exportAnalytics()">
+                    <i class="fas fa-download text-slate-400"></i>Export Data
+                </button>
             </div>
-            
+
             <!-- Summary Cards -->
-            <div class="row mb-4">
-                <div class="col-xl-3 col-md-6 mb-4">
-                    <div class="card border-left-primary shadow h-100 py-2">
-                        <div class="card-body">
-                            <div class="row no-gutters align-items-center">
-                                <div class="col mr-2">
-                                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                        Total Reports
-                                    </div>
-                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                        <?php echo array_sum(array_column($category_data, 'count')); ?>
-                                    </div>
-                                </div>
-                                <div class="col-auto">
-                                    <i class="fas fa-file-alt fa-2x text-gray-300"></i>
-                                </div>
-                            </div>
-                        </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+                <div class="stat-card flex items-start justify-between">
+                    <div>
+                        <div class="stat-label">Total Reports</div>
+                        <div class="stat-value"><?php echo array_sum(array_column($category_data, 'count')); ?></div>
+                    </div>
+                    <span class="stat-icon bg-slate-100 text-slate-700"><i class="fas fa-file-alt"></i></span>
+                </div>
+                <div class="stat-card flex items-start justify-between">
+                    <div>
+                        <div class="stat-label">Resolved Reports</div>
+                        <div class="stat-value"><?php echo array_sum(array_filter(array_column($status_data, 'count'), function($key) use ($status_data) {
+                            return $status_data[$key]['status'] == 'Resolved';
+                        }, ARRAY_FILTER_USE_KEY)); ?></div>
+                    </div>
+                    <span class="stat-icon bg-emerald-50 text-emerald-600"><i class="fas fa-check-circle"></i></span>
+                </div>
+                <div class="stat-card flex items-start justify-between">
+                    <div>
+                        <div class="stat-label">Avg Response Time</div>
+                        <div class="stat-value"><?php echo $response_data['avg_response_days'] ? round($response_data['avg_response_days'], 1) . ' days' : 'N/A'; ?></div>
+                    </div>
+                    <span class="stat-icon bg-amber-50 text-amber-600"><i class="fas fa-clock"></i></span>
+                </div>
+                <div class="stat-card flex items-start justify-between">
+                    <div>
+                        <div class="stat-label">High Priority</div>
+                        <div class="stat-value"><?php echo array_sum(array_filter(array_column($severity_data, 'count'), function($key) use ($severity_data) {
+                            return in_array($severity_data[$key]['severity_level'], ['High', 'Critical']);
+                        }, ARRAY_FILTER_USE_KEY)); ?></div>
+                    </div>
+                    <span class="stat-icon bg-red-50 text-red-600"><i class="fas fa-exclamation-triangle"></i></span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+                <div class="card">
+                    <div class="card-header flex items-center gap-2">
+                        <i class="fas fa-chart-pie text-slate-400"></i>
+                        <span>Reports by Category</span>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="categoryChart" height="200"></canvas>
                     </div>
                 </div>
-                
-                <div class="col-xl-3 col-md-6 mb-4">
-                    <div class="card border-left-success shadow h-100 py-2">
-                        <div class="card-body">
-                            <div class="row no-gutters align-items-center">
-                                <div class="col mr-2">
-                                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                        Resolved Reports
-                                    </div>
-                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                        <?php echo array_sum(array_filter(array_column($status_data, 'count'), function($key) use ($status_data) { 
-                                            return $status_data[$key]['status'] == 'Resolved'; 
-                                        }, ARRAY_FILTER_USE_KEY)); ?>
-                                    </div>
-                                </div>
-                                <div class="col-auto">
-                                    <i class="fas fa-check-circle fa-2x text-gray-300"></i>
-                                </div>
-                            </div>
-                        </div>
+                <div class="card">
+                    <div class="card-header flex items-center gap-2">
+                        <i class="fas fa-chart-bar text-slate-400"></i>
+                        <span>Reports by Severity</span>
                     </div>
-                </div>
-                
-                <div class="col-xl-3 col-md-6 mb-4">
-                    <div class="card border-left-warning shadow h-100 py-2">
-                        <div class="card-body">
-                            <div class="row no-gutters align-items-center">
-                                <div class="col mr-2">
-                                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                        Avg Response Time
-                                    </div>
-                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                        <?php echo $response_data['avg_response_days'] ? round($response_data['avg_response_days'], 1) . ' days' : 'N/A'; ?>
-                                    </div>
-                                </div>
-                                <div class="col-auto">
-                                    <i class="fas fa-clock fa-2x text-gray-300"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="col-xl-3 col-md-6 mb-4">
-                    <div class="card border-left-info shadow h-100 py-2">
-                        <div class="card-body">
-                            <div class="row no-gutters align-items-center">
-                                <div class="col mr-2">
-                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                        High Priority
-                                    </div>
-                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                        <?php echo array_sum(array_filter(array_column($severity_data, 'count'), function($key) use ($severity_data) { 
-                                            return in_array($severity_data[$key]['severity_level'], ['High', 'Critical']); 
-                                        }, ARRAY_FILTER_USE_KEY)); ?>
-                                    </div>
-                                </div>
-                                <div class="col-auto">
-                                    <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="card-body">
+                        <canvas id="severityChart" height="200"></canvas>
                     </div>
                 </div>
             </div>
-            
-            <div class="row">
-                <!-- Charts Row 1 -->
-                <div class="col-lg-6">
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h6 class="mb-0">
-                                <i class="fas fa-chart-pie me-2"></i>Reports by Category
-                            </h6>
-                        </div>
-                        <div class="card-body">
-                            <canvas id="categoryChart" height="200"></canvas>
-                        </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+                <div class="lg:col-span-2 card">
+                    <div class="card-header flex items-center gap-2">
+                        <i class="fas fa-chart-line text-slate-400"></i>
+                        <span>Monthly Trends</span>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="monthlyChart" height="100"></canvas>
                     </div>
                 </div>
-                
-                <div class="col-lg-6">
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h6 class="mb-0">
-                                <i class="fas fa-chart-bar me-2"></i>Reports by Severity
-                            </h6>
-                        </div>
-                        <div class="card-body">
-                            <canvas id="severityChart" height="200"></canvas>
-                        </div>
+                <div class="card">
+                    <div class="card-header flex items-center gap-2">
+                        <i class="fas fa-chart-pie text-slate-400"></i>
+                        <span>Status Distribution</span>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="statusChart" height="200"></canvas>
                     </div>
                 </div>
             </div>
-            
-            <div class="row">
-                <!-- Charts Row 2 -->
-                <div class="col-lg-8">
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h6 class="mb-0">
-                                <i class="fas fa-chart-line me-2"></i>Monthly Trends
-                            </h6>
-                        </div>
-                        <div class="card-body">
-                            <canvas id="monthlyChart" height="100"></canvas>
-                        </div>
+
+            <div class="grid grid-cols-1 <?php echo ($_SESSION['user_role'] == 'Admin' && !empty($org_ranking_data)) ? 'lg:grid-cols-2' : ''; ?> gap-4">
+                <div class="card">
+                    <div class="card-header flex items-center gap-2">
+                        <i class="fas fa-clock text-slate-400"></i>
+                        <span>Peak Hours Analysis</span>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="hourlyChart" height="200"></canvas>
                     </div>
                 </div>
-                
-                <div class="col-lg-4">
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h6 class="mb-0">
-                                <i class="fas fa-chart-doughnut me-2"></i>Status Distribution
-                            </h6>
-                        </div>
-                        <div class="card-body">
-                            <canvas id="statusChart" height="200"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="row">
-                <!-- Charts Row 3 -->
-                <div class="col-lg-6">
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h6 class="mb-0">
-                                <i class="fas fa-clock me-2"></i>Peak Hours Analysis
-                            </h6>
-                        </div>
-                        <div class="card-body">
-                            <canvas id="hourlyChart" height="200"></canvas>
-                        </div>
-                    </div>
-                </div>
-                
+
                 <?php if ($_SESSION['user_role'] == 'Admin' && !empty($org_ranking_data)): ?>
-                <div class="col-lg-6">
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h6 class="mb-0">
-                                <i class="fas fa-trophy me-2"></i>Top Organizations
-                            </h6>
-                        </div>
-                        <div class="card-body">
-                            <canvas id="orgChart" height="200"></canvas>
-                        </div>
+                <div class="card">
+                    <div class="card-header flex items-center gap-2">
+                        <i class="fas fa-trophy text-slate-400"></i>
+                        <span>Top Organizations</span>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="orgChart" height="200"></canvas>
                     </div>
                 </div>
                 <?php endif; ?>

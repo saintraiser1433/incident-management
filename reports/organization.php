@@ -78,29 +78,25 @@ $members = $membersStmt->fetchAll();
 ?>
 
 <div class="container-fluid">
-    <div class="row">
+    <div class="row g-0">
         <?php include '../views/sidebar.php'; ?>
-        
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
-            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h1 class="h2">
-                    <i class="fas fa-file-alt me-2"></i><?php echo $_SESSION['organization_name']; ?> Reports
-                </h1>
-                <div class="btn-toolbar mb-2 mb-md-0">
-                    <div class="btn-group me-2">
-                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="exportReports()">
-                            <i class="fas fa-download me-1"></i>Export
-                        </button>
-                    </div>
+
+        <main class="col-md-9 ms-sm-auto col-lg-10 main-content">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-5 mb-6 border-b border-slate-200">
+                <div>
+                    <h1 class="text-2xl font-semibold tracking-tight text-slate-900"><?php echo $_SESSION['organization_name']; ?> Reports</h1>
+                    <p class="text-sm text-slate-500 mt-1">Review the queue, in-progress and resolved incidents.</p>
                 </div>
+                <button type="button" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition" onclick="exportReports()">
+                    <i class="fas fa-download text-slate-400"></i>Export
+                </button>
             </div>
-            
+
             <!-- Filters -->
             <div class="card mb-4">
-                <div class="card-header">
-                    <h6 class="mb-0">
-                        <i class="fas fa-filter me-2"></i>Filters
-                    </h6>
+                <div class="card-header flex items-center gap-2">
+                    <i class="fas fa-filter text-slate-400"></i>
+                    <span>Filters</span>
                 </div>
                 <div class="card-body">
                     <form method="GET" class="row g-3">
@@ -165,10 +161,9 @@ $members = $membersStmt->fetchAll();
             
             <!-- Waiting Queue -->
             <div class="card mb-4">
-                <div class="card-header">
-                    <h6 class="mb-0">
-                        <i class="fas fa-clipboard-list me-2"></i>Waiting Queue
-                    </h6>
+                <div class="card-header flex items-center gap-2">
+                    <i class="fas fa-clipboard-list text-slate-400"></i>
+                    <span>Waiting Queue</span>
                 </div>
                 <div class="card-body">
                     <?php if (empty($waiting_queue)): ?>
@@ -236,10 +231,10 @@ $members = $membersStmt->fetchAll();
 
             <!-- Reports Table -->
             <div class="card">
-                <div class="card-header">
-                    <h6 class="mb-0">
-                        <i class="fas fa-list me-2"></i>Reports (<?php echo count($reports); ?>)
-                    </h6>
+                <div class="card-header flex items-center gap-2">
+                    <i class="fas fa-list text-slate-400"></i>
+                    <span>Reports</span>
+                    <span class="badge bg-secondary ms-auto"><?php echo count($reports); ?></span>
                 </div>
                 <div class="card-body">
                     <?php if (empty($reports)): ?>
